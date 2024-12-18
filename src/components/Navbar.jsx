@@ -1,25 +1,44 @@
-// components/Navbar.jsx
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button } from '@mui/material';
-import { useRouter } from 'next/router';
+import { AppBar, Toolbar, Typography, Button, IconButton, Badge } from '@mui/material';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import SearchIcon from '@mui/icons-material/Search';
+import Link from 'next/router';
 
 const Navbar = () => {
-  const router = useRouter();
-
-  const handleSignOut = () => {
-    // Handle sign-out logic here (e.g., using NextAuth signOut method)
-    router.push('/auth/signin'); // Redirect to sign-in page after logout
-  };
-
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ backgroundColor: '#153B60' }}> {/* Change AppBar color */}
       <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+        {/* App Title */}
+        <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
           My Performance App
         </Typography>
-        <Button color="inherit" onClick={handleSignOut}>
-          Sign Out
-        </Button>
+
+        {/* Search Icon */}
+        <IconButton color="inherit" sx={{ marginRight: 2 }}>
+          <SearchIcon />
+        </IconButton>
+
+        {/* Notification Button with Badge */}
+        <IconButton color="inherit" sx={{ marginRight: 2 }}>
+          <Badge badgeContent={3} color="error">
+            <NotificationsIcon />
+          </Badge>
+        </IconButton>
+
+        {/* Sign In Link */}
+        <Link href="/auth/signin" passHref>
+          <Button color="inherit" sx={{ color: 'white' }}> {/* Button color change */}
+            Sign In
+          </Button>
+        </Link>
+
+        {/* Sign Out Link - If User is Logged In */}
+        {/* You can conditionally render this based on user authentication state */}
+        <Link href="/api/auth/signout" passHref>
+          <Button color="inherit" sx={{ color: 'white' }}> {/* Button color change */}
+            Sign Out
+          </Button>
+        </Link>
       </Toolbar>
     </AppBar>
   );
