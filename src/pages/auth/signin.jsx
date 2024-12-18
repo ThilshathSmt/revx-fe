@@ -61,7 +61,7 @@ const SignIn = () => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "#ffff",
         padding: 2,
       }}
     >
@@ -100,18 +100,24 @@ const SignIn = () => {
           )}
           <Button
             variant="contained"
-            color="primary"
             fullWidth
             onClick={handleSignIn}
             disabled={loading}
-            sx={{ height: 45 }}
+            sx={{
+              height: 45,
+              backgroundColor: '#153B60', // Set the color to #153B60
+              '&:hover': {
+                backgroundColor: '#0d2a43', // Darker shade for hover effect
+              },
+            }}
           >
             {loading ? (
-              <CircularProgress size={24} sx={{ color: "white" }} />
+              <CircularProgress size={24} sx={{ color: 'white' }} />
             ) : (
-              "Sign In"
+              'Sign In'
             )}
           </Button>
+
         </CardContent>
       </Card>
     </Box>
