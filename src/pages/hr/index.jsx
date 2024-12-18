@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
@@ -6,19 +6,22 @@ import {
   Card,
   CardContent,
   IconButton,
+  Divider,
   List,
   ListItem,
   ListItemText,
   Paper,
-  Divider,
+  InputBase,
+  Badge,
   Menu,
   MenuItem,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
+import SearchIcon from '@mui/icons-material/Search';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import ManagerLayout from '../../components/ManagerLayout'; // Import ManagerLayout
+import Layout from '../../components/Layout'; // Importing Layout
 
 // Sample Data for Visualizations
 const performanceData = [
@@ -30,23 +33,23 @@ const performanceData = [
   { month: 'Jun', score: 95 },
 ];
 
-const taskData = [
-  { name: 'Completed', value: 50 },
-  { name: 'In Progress', value: 30 },
-  { name: 'Pending', value: 20 },
+const goalData = [
+  { name: 'Completed', value: 40 },
+  { name: 'In Progress', value: 35 },
+  { name: 'Overdue', value: 25 },
 ];
 
 const COLORS = ['#4caf50', '#2196f3', '#f44336'];
 
 const recentActivities = [
-  'Task assigned to Jane Doe: Improve website UI',
-  'Project deadline extended for team A',
-  'New task added: Develop mobile app feature',
-  'Meeting scheduled with client XYZ for next week',
+  'Added new employee: John Doe',
+  'Feedback submitted for Q2 reviews',
+  'Reminder sent for pending reviews',
+  'New review cycle started: Q3 2024',
 ];
 
-const ManagerDashboard = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
+const HRDashboard = () => {
+  const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleNotificationsClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -57,11 +60,12 @@ const ManagerDashboard = () => {
   };
 
   return (
-    <ManagerLayout>
+    <Layout>
+      {/* Main Content */}
       <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
         {/* Heading */}
         <Typography variant="h3" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-          📊 Manager Dashboard
+          📊 HR Dashboard
         </Typography>
 
         {/* Quick Stats Cards */}
@@ -70,9 +74,9 @@ const ManagerDashboard = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  📝 Ongoing Projects
+                  📈 Active Review Cycles
                 </Typography>
-                <Typography variant="h4">7</Typography>
+                <Typography variant="h4">3</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -81,9 +85,9 @@ const ManagerDashboard = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  👥 Team Members
+                  👥 Employees Reviewed
                 </Typography>
-                <Typography variant="h4">25</Typography>
+                <Typography variant="h4">45</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -92,9 +96,9 @@ const ManagerDashboard = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  ⚠️ Pending Tasks
+                  ⚠️ Pending Reviews
                 </Typography>
-                <Typography variant="h4">15</Typography>
+                <Typography variant="h4">12</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -103,9 +107,9 @@ const ManagerDashboard = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  🎯 Task Completion Rate
+                  🎯 Goal Completion Rate
                 </Typography>
-                <Typography variant="h4">68%</Typography>
+                <Typography variant="h4">78%</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -128,15 +132,15 @@ const ManagerDashboard = () => {
           </ResponsiveContainer>
         </Paper>
 
-        {/* Task Status Summary */}
+        {/* Goal Status Summary */}
         <Paper sx={{ padding: 3, marginBottom: 4 }}>
           <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            🎯 Task Status Summary
+            🎯 Goal Status Summary
           </Typography>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={taskData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                {taskData.map((entry, index) => (
+              <Pie data={goalData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                {goalData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -168,21 +172,21 @@ const ManagerDashboard = () => {
               <IconButton color="error">
                 <WarningIcon />
               </IconButton>
-              <ListItemText primary="Overdue tasks: 5 tasks" />
+              <ListItemText primary="Overdue reviews: 5 employees" />
             </ListItem>
             <Divider />
             <ListItem>
               <IconButton color="info">
                 <NotificationsIcon />
               </IconButton>
-              <ListItemText primary="Upcoming deadline: Project A" />
+              <ListItemText primary="Upcoming deadline: Q2 review cycle ends in 3 days" />
             </ListItem>
             <Divider />
             <ListItem>
               <IconButton color="primary">
                 <TrendingUpIcon />
               </IconButton>
-              <ListItemText primary="System update: New feature deployment" />
+              <ListItemText primary="System update: New review templates available" />
             </ListItem>
           </List>
         </Paper>
@@ -199,12 +203,12 @@ const ManagerDashboard = () => {
           },
         }}
       >
-        <MenuItem onClick={handleCloseNotifications}>Overdue tasks: 5 tasks</MenuItem>
-        <MenuItem onClick={handleCloseNotifications}>Upcoming deadline: Project A</MenuItem>
-        <MenuItem onClick={handleCloseNotifications}>System update: New feature deployment</MenuItem>
+        <MenuItem onClick={handleCloseNotifications}>Overdue reviews: 5 employees</MenuItem>
+        <MenuItem onClick={handleCloseNotifications}>Upcoming deadline: Q2 review cycle ends in 3 days</MenuItem>
+        <MenuItem onClick={handleCloseNotifications}>System update: New review templates available</MenuItem>
       </Menu>
-    </ManagerLayout>
+    </Layout>
   );
 };
 
-export default ManagerDashboard;
+export default HRDashboard;
