@@ -97,7 +97,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* Review Cycles */}
-        <ListItem button onClick={() => handleNavigation('/hr/review-cycles')}>
+        <ListItem button onClick={() => handleNavigation('/hr/reviews')}>
           <ListItemIcon>
             <EventNoteIcon sx={{ color: 'white' }} />
           </ListItemIcon>

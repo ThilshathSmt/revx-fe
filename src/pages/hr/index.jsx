@@ -12,6 +12,8 @@ import {
   ListItemText,
   Paper,
   InputBase,
+  AppBar,
+  Toolbar,
   Badge,
   Menu,
   MenuItem,
@@ -61,6 +63,33 @@ const HRDashboard = () => {
 
   return (
     <Layout>
+      {/* Top Navigation Bar */}
+      <AppBar position="sticky" sx={{ backgroundColor: '#3f51b5' }}>
+        <Toolbar>
+          {/* Notification Icon on the left side */}
+          <IconButton onClick={handleNotificationsClick} color="inherit">
+            <Badge badgeContent={4} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
+
+          <Box sx={{ flexGrow: 1 }} />
+          {/* Search Bar */}
+          <InputBase
+            placeholder="Search..."
+            startAdornment={<SearchIcon sx={{ color: 'white' }} />}
+            sx={{
+              backgroundColor: 'white',
+              borderRadius: 1,
+              paddingLeft: 2,
+              paddingRight: 2,
+              width: 200,
+            }}
+          />
+          <Box sx={{ flexGrow: 1 }} />
+        </Toolbar>
+      </AppBar>
+
       {/* Main Content */}
       <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
         {/* Heading */}
