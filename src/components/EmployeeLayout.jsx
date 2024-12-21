@@ -6,14 +6,14 @@ import { Box } from '@mui/material';
 
 const EmployeeLayout = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <EmployeeSidebar />
+    
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Navbar */}
-        {/* <Navbar /> */}
-
+        <Navbar />
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <EmployeeSidebar />
         <Box
           component="main"
           sx={{
@@ -26,9 +26,10 @@ const EmployeeLayout = ({ children }) => {
           {children}
         </Box>
 
-        {/* Footer */}
-        <Footer />
+        
       </Box>
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };

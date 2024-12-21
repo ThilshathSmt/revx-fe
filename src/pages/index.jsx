@@ -19,7 +19,8 @@ const Home = () => {
         <Toolbar>
           {/* App Title */}
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            My Performance App
+            {/* App Logo */}
+            <img src="/images/logo.png" alt="RevX Logo" style={{ height: '40px',width:'120px', flexGrow: 1 }} />
           </Typography>
 
           {/* Search Icon */}

@@ -1,41 +1,16 @@
-import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Avatar, Menu, MenuItem } from '@mui/material';
+import React from 'react';
+import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Avatar } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssignmentIcon from '@mui/icons-material/Assignment';
-import RateReviewIcon from '@mui/icons-material/RateReview';
-import FeedbackIcon from '@mui/icons-material/Feedback';
-import HistoryIcon from '@mui/icons-material/History';
-import HelpIcon from '@mui/icons-material/Help';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import { useRouter } from 'next/router';
 
 const EmployeeSidebar = () => {
   const router = useRouter();
-  const [anchorEl, setAnchorEl] = useState(null);
 
   const handleNavigation = (path) => {
     router.push(path);
-  };
-
-  const handleProfileClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseProfileMenu = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSignOut = () => {
-    // Implement sign out logic here
-    console.log("User signed out");
-
-    // Example: Remove authentication token from localStorage
-    localStorage.removeItem('authToken');
-
-    // Close profile menu
-    handleCloseProfileMenu();
-
-    // Redirect to the homepage (index.js)
-    router.push('/');
   };
 
   return (
@@ -49,18 +24,24 @@ const EmployeeSidebar = () => {
         display: 'flex',
         flexDirection: 'column',
         padding: 2,
-        position: 'fixed', // Fix sidebar in place
+        position: 'fixed',
       }}
     >
-      {/* Logo Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 3 }}>
-        <img src="/images/logo.png" alt="Logo" style={{ height: 60, width: 150 }} />
-      </Box>
+      
+      
+            {/* Profile Section centered */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
+              <Avatar alt="Employee" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
+                  CodeNex
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  Employee
+                </Typography>
+              </Box>
+            </Box>
 
-      {/* Sidebar Title */}
-      <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 2, textAlign: 'center' }}>
-        Employee Panel
-      </Typography>
 
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginBottom: 2 }} />
 
@@ -73,7 +54,7 @@ const EmployeeSidebar = () => {
           </ListItemIcon>
           <ListItemText
             primary="Dashboard"
-            secondary="Personal Overview and Notifications"
+            secondary="Overview of your tasks and goals"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
@@ -81,14 +62,14 @@ const EmployeeSidebar = () => {
           />
         </ListItem>
 
-        {/* My Goals */}
+        {/* Goal Management */}
         <ListItem button onClick={() => handleNavigation('/employee/goals')}>
           <ListItemIcon>
             <AssignmentIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
             primary="My Goals"
-            secondary="View Assigned Goals & Update Progress"
+            secondary="View and manage your personal goals"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
@@ -96,14 +77,14 @@ const EmployeeSidebar = () => {
           />
         </ListItem>
 
-        {/* Self-Assessment */}
-        <ListItem button onClick={() => handleNavigation('/employee/self-assessment')}>
+        {/* Performance Reviews */}
+        <ListItem button onClick={() => handleNavigation('/employee/reviews')}>
           <ListItemIcon>
-            <RateReviewIcon sx={{ color: 'white' }} />
+            <EventNoteIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
-            primary="Self-Assessment"
-            secondary="Complete Assessment & Submission History"
+            primary="Performance Reviews"
+            secondary="Review feedback and evaluations"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
@@ -111,44 +92,14 @@ const EmployeeSidebar = () => {
           />
         </ListItem>
 
-        {/* Feedback */}
-        <ListItem button onClick={() => handleNavigation('/employee/feedback')}>
+        {/* Reports */}
+        <ListItem button onClick={() => handleNavigation('/employee/reports')}>
           <ListItemIcon>
-            <FeedbackIcon sx={{ color: 'white' }} />
+            <BarChartIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
-            primary="Feedback"
-            secondary="View Manager Feedback & Add Comments"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
-
-        {/* Performance History */}
-        <ListItem button onClick={() => handleNavigation('/employee/performance-history')}>
-          <ListItemIcon>
-            <HistoryIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Performance History"
-            secondary="View Past Reviews & Track Career Growth"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
-
-        {/* Support */}
-        <ListItem button onClick={() => handleNavigation('/employee/support')}>
-          <ListItemIcon>
-            <HelpIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Support"
-            secondary="FAQs & Contact HR"
+            primary="Reports"
+            secondary="View your performance reports"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
@@ -159,33 +110,7 @@ const EmployeeSidebar = () => {
 
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginY: 2 }} />
 
-      {/* Employee Profile Section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', padding: 1 }} onClick={handleProfileClick}>
-        <Avatar alt="Employee" src="/images/logo.png" sx={{ marginRight: 2, width: 40, height: 40 }} />
-        <Box>
-          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
-            CodeNex Employee
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-            Software Engineer
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseProfileMenu}
-        PaperProps={{
-          style: {
-            width: '200px',
-          },
-        }}
-      >
-        <MenuItem onClick={() => handleNavigation('/employee/profile')}>Profile</MenuItem>
-        <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
-      </Menu>
+     
     </Box>
   );
 };

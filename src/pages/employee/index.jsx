@@ -1,20 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
   Grid,
   Card,
   CardContent,
-  IconButton,
+  Paper,
   List,
   ListItem,
   ListItemText,
-  Paper,
   Divider,
-  Menu,
-  MenuItem,
 } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import FeedbackIcon from '@mui/icons-material/Feedback';
@@ -47,16 +43,6 @@ const recentActivities = [
 ];
 
 const EmployeeDashboard = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
-
-  const handleNotificationsClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseNotifications = () => {
-    setAnchorEl(null);
-  };
-
   return (
     <EmployeeLayout>
       <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
@@ -65,11 +51,6 @@ const EmployeeDashboard = () => {
           <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
             📊 Employee Dashboard
           </Typography>
-
-          {/* Notification Icon in Top Right Corner */}
-          <IconButton onClick={handleNotificationsClick} sx={{ position: 'absolute', top: 50, right: 50 ,color: '#153B60'}}>
-            <NotificationsIcon />
-          </IconButton>
         </Box>
 
         {/* Quick Stats Cards */}
@@ -165,43 +146,24 @@ const EmployeeDashboard = () => {
           </List>
         </Paper>
 
-        {/* Notifications Panel */}
+        {/* Notifications Panel (if you still want to keep it, else you can remove it) */}
         <Paper sx={{ padding: 3 }}>
           <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
             ⚠️ Notifications
           </Typography>
           <List>
             <ListItem>
-              <IconButton color="error">
-                <TrendingUpIcon />
-              </IconButton>
+              <TrendingUpIcon color="error" />
               <ListItemText primary="Overdue task: Submit self-assessment" />
             </ListItem>
             <Divider />
             <ListItem>
-              <IconButton color="info">
-                <NotificationsIcon />
-              </IconButton>
+              <AssignmentIcon color="info" />
               <ListItemText primary="Upcoming deadline: Complete project task" />
             </ListItem>
           </List>
         </Paper>
       </Box>
-
-      {/* Notifications Dropdown */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseNotifications}
-        PaperProps={{
-          style: {
-            width: '200px',
-          },
-        }}
-      >
-        <MenuItem onClick={handleCloseNotifications}>Overdue task: Submit self-assessment</MenuItem>
-        <MenuItem onClick={handleCloseNotifications}>Upcoming deadline: Complete project task</MenuItem>
-      </Menu>
     </EmployeeLayout>
   );
 };
