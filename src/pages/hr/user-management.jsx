@@ -25,7 +25,7 @@ import {
   MenuItem,
   FormHelperText,
 } from "@mui/material";
-import Layout from "../../components/Layout"; // Import the new Layout component
+import HRLayout from "../../components/HRLayout"; // Import the new Layout component
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -174,7 +174,7 @@ const UserManagement = () => {
   if (error) return <Typography variant="h6">{error}</Typography>;
 
   return (
-    <Layout>
+    <HRLayout>
       <Typography variant="h4" gutterBottom>
         User Management
       </Typography>
@@ -442,7 +442,7 @@ const UserManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Layout>
+    </HRLayout>
   );
 };
 

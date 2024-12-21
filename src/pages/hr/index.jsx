@@ -12,18 +12,12 @@ import {
   ListItemText,
   Paper,
   InputBase,
-  AppBar,
-  Toolbar,
-  Badge,
-  Menu,
-  MenuItem,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
-import SearchIcon from '@mui/icons-material/Search';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import Layout from '../../components/Layout'; // Importing Layout
+import HRLayout from '../../components/HRLayout'; // Importing Layout
 
 // Sample Data for Visualizations
 const performanceData = [
@@ -51,45 +45,8 @@ const recentActivities = [
 ];
 
 const HRDashboard = () => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
-
-  const handleNotificationsClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseNotifications = () => {
-    setAnchorEl(null);
-  };
-
   return (
-    <Layout>
-      {/* Top Navigation Bar */}
-      <AppBar position="sticky" sx={{ backgroundColor: '#3f51b5' }}>
-        <Toolbar>
-          {/* Notification Icon on the left side */}
-          <IconButton onClick={handleNotificationsClick} color="inherit">
-            <Badge badgeContent={4} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-
-          <Box sx={{ flexGrow: 1 }} />
-          {/* Search Bar */}
-          <InputBase
-            placeholder="Search..."
-            startAdornment={<SearchIcon sx={{ color: 'white' }} />}
-            sx={{
-              backgroundColor: 'white',
-              borderRadius: 1,
-              paddingLeft: 2,
-              paddingRight: 2,
-              width: 200,
-            }}
-          />
-          <Box sx={{ flexGrow: 1 }} />
-        </Toolbar>
-      </AppBar>
-
+    <HRLayout>
       {/* Main Content */}
       <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
         {/* Heading */}
@@ -220,23 +177,7 @@ const HRDashboard = () => {
           </List>
         </Paper>
       </Box>
-
-      {/* Notifications Dropdown */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseNotifications}
-        PaperProps={{
-          style: {
-            width: '200px',
-          },
-        }}
-      >
-        <MenuItem onClick={handleCloseNotifications}>Overdue reviews: 5 employees</MenuItem>
-        <MenuItem onClick={handleCloseNotifications}>Upcoming deadline: Q2 review cycle ends in 3 days</MenuItem>
-        <MenuItem onClick={handleCloseNotifications}>System update: New review templates available</MenuItem>
-      </Menu>
-    </Layout>
+    </HRLayout>
   );
 };
 

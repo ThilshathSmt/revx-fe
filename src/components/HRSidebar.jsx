@@ -1,47 +1,30 @@
 import React, { useState } from 'react';
-import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Avatar, Menu, MenuItem } from '@mui/material';
+import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Avatar, IconButton } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu'; // Importing the menu (hamburger) icon
 import { useRouter } from 'next/router';
 
 const HRSidebar = () => {
   const router = useRouter();
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [open, setOpen] = useState(true); // State to control sidebar visibility
 
   const handleNavigation = (path) => {
     router.push(path);
   };
 
-  const handleProfileClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseProfileMenu = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSignOut = () => {
-    // Implement sign out logic here
-    console.log("User signed out");
-
-    // Example: Remove authentication token from localStorage
-    localStorage.removeItem('authToken');
-
-    // Close profile menu
-    handleCloseProfileMenu();
-
-    // Redirect to the homepage (index.js)
-    router.push('/');
+  const toggleSidebar = () => {
+    setOpen(!open);
   };
 
   return (
     <Box
       sx={{
-        width: 260,
+        width: open ? 260 : 0, // If open, set width to 260px, otherwise 0
         height: '100vh',
         backgroundColor: '#153B60',
         color: 'white',
@@ -50,24 +33,47 @@ const HRSidebar = () => {
         flexDirection: 'column',
         padding: 2,
         position: 'fixed', // Fix sidebar in place
+        transition: 'width 0.3s', // Smooth transition for sliding effect
+        '@media (max-width: 600px)': {
+          width: open ? '100%' : '0', // Full width on small screens when open
+          height: 'auto',
+          position: 'relative', // Allow scrolling on smaller screens
+        },
       }}
     >
-      {/* Logo Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', marginBottom: 3 }}>
-        <img src="/images/logo.png" alt="Logo" style={{ height: 60, width: 150 }} />
-      </Box>
+      {/* Hamburger (Drawer Toggle) Icon */}
+      <IconButton
+        onClick={toggleSidebar}
+        sx={{
+          color: 'white',
+          position: 'absolute',
+          top: 10,
+          left: 10,
+          zIndex: 10, // Ensure it is above other elements
+        }}
+      >
+        <MenuIcon />
+      </IconButton>
 
-      {/* Sidebar Title */}
-      <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 2, textAlign: 'center' }}>
-        HR Panel
-      </Typography>
+      {/* Profile Section */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
+        <Avatar alt="HR" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
+            CodeNex
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+            HR Admin
+          </Typography>
+        </Box>
+      </Box>
 
       <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginBottom: 2 }} />
 
       {/* Sidebar Navigation List */}
       <List sx={{ flexGrow: 1 }}>
         {/* Dashboard */}
-        <ListItem button onClick={() => handleNavigation('/hr')}>
+        <ListItem button onClick={() => handleNavigation('/hr')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <DashboardIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -82,7 +88,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* User Management */}
-        <ListItem button onClick={() => handleNavigation('/hr/user-management')}>
+        <ListItem button onClick={() => handleNavigation('/hr/user-management')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <PeopleIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -97,7 +103,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* Review Cycles */}
-        <ListItem button onClick={() => handleNavigation('/hr/reviews')}>
+        <ListItem button onClick={() => handleNavigation('/hr/reviews')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <EventNoteIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -112,7 +118,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* Notifications */}
-        <ListItem button onClick={() => handleNavigation('/hr/notifications')}>
+        <ListItem button onClick={() => handleNavigation('/hr/notifications')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <NotificationsIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -127,7 +133,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* Reports */}
-        <ListItem button onClick={() => handleNavigation('/hr/reports')}>
+        <ListItem button onClick={() => handleNavigation('/hr/reports')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <BarChartIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -142,7 +148,7 @@ const HRSidebar = () => {
         </ListItem>
 
         {/* Settings */}
-        <ListItem button onClick={() => handleNavigation('/hr/settings')}>
+        <ListItem button onClick={() => handleNavigation('/hr/settings')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <SettingsIcon sx={{ color: 'white' }} />
           </ListItemIcon>
@@ -156,36 +162,6 @@ const HRSidebar = () => {
           />
         </ListItem>
       </List>
-
-      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginY: 2 }} />
-
-      {/* HR Profile Section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', padding: 1 }} onClick={handleProfileClick}>
-        <Avatar alt="HR" src="/images/logo.png" sx={{ marginRight: 2, width: 40, height: 40 }} />
-        <Box>
-          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
-            CodeNex
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-            HR Admin
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseProfileMenu}
-        PaperProps={{
-          style: {
-            width: '200px',
-          },
-        }}
-      >
-        <MenuItem onClick={() => handleNavigation('/hr/profile')}>Profile</MenuItem>
-        <MenuItem onClick={handleSignOut}>Sign Out</MenuItem>
-      </Menu>
     </Box>
   );
 };
