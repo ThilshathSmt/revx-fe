@@ -1,15 +1,14 @@
-// pages/api/auth/signout.js
+import { getSession } from "next-auth/react";
+
 export default async function handler(req, res) {
-    if (req.method === 'POST') {
-      // Here you can clear the authentication token from the client's cookies or session
-      // Example: Clearing the token from cookies
-      res.setHeader('Set-Cookie', 'authToken=; Max-Age=0; path=/; HttpOnly; SameSite=Strict');
+  const session = await getSession({ req });
   
-      // Respond with success message
-      return res.status(200).json({ message: 'Signed out successfully' });
-    }
-  
-    // If not POST request
-    res.status(405).json({ message: 'Method Not Allowed' });
+  if (!session) {
+    return res.status(401).json({ message: "No active session" });
   }
-  
+
+  // Destroy the session cookie or invalidate JWT here
+  res.setHeader("Set-Cookie", "next-auth.session-token=; Max-Age=0; path=/;");
+
+  return res.status(200).json({ message: "Logged out successfully" });
+}

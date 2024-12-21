@@ -1,44 +1,58 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, IconButton, Badge } from '@mui/material';
+import { AppBar, Toolbar, IconButton, Badge, InputBase, Box, Button, Avatar } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
-import Link from 'next/router';
+import { useRouter } from 'next/router'; // For redirecting after sign-out
+import { signOut } from 'next-auth/react'; // Import NextAuth's signOut function
 
 const Navbar = () => {
+  const router = useRouter(); // Initialize router to handle redirection after sign-out
+
+  const handleSignOut = async () => {
+    // Call the NextAuth signOut function to clear the session
+    await signOut({ redirect: false });  // `redirect: false` prevents automatic redirection
+    router.push('/auth/signin');  // Redirect the user to the sign-in page after sign-out
+  };
+
   return (
-    <AppBar position="static" sx={{ backgroundColor: '#153B60' }}> {/* Change AppBar color */}
-      <Toolbar>
-        {/* App Title */}
-        <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>
-          My Performance App
-        </Typography>
+    <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
+        {/* Logo Section aligned to the left */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar src="/images/logo.png" alt="Logo" style={{ height: 60, width: 60 }} />
+        </Box>
 
-        {/* Search Icon */}
-        <IconButton color="inherit" sx={{ marginRight: 2 }}>
-          <SearchIcon />
-        </IconButton>
+        {/* Right-Aligned Elements (Search Bar, Notifications, Sign Out) */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Search Bar */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            padding: '5px 15px',
+            width: '300px',
+            marginRight: 2,
+          }}>
+            <SearchIcon sx={{ color: '#153B60' }} />
+            <InputBase
+              sx={{ ml: 1, flex: 1, color: '#153B60' }}
+              placeholder="Search..."
+            />
+          </Box>
 
-        {/* Notification Button with Badge */}
-        <IconButton color="inherit" sx={{ marginRight: 2 }}>
-          <Badge badgeContent={3} color="error">
-            <NotificationsIcon />
-          </Badge>
-        </IconButton>
+          {/* Notification Icon with Badge */}
+          <IconButton color="inherit" sx={{ marginRight: 2 }}>
+            <Badge badgeContent={3} color="error">
+              <NotificationsIcon />
+            </Badge>
+          </IconButton>
 
-        {/* Sign In Link */}
-        <Link href="/auth/signin" passHref>
-          <Button color="inherit" sx={{ color: 'white' }}> {/* Button color change */}
-            Sign In
-          </Button>
-        </Link>
-
-        {/* Sign Out Link - If User is Logged In */}
-        {/* You can conditionally render this based on user authentication state */}
-        <Link href="/api/auth/signout" passHref>
-          <Button color="inherit" sx={{ color: 'white' }}> {/* Button color change */}
+          {/* Sign Out Button */}
+          <Button color="inherit" sx={{ color: 'white' }} onClick={handleSignOut}>
             Sign Out
           </Button>
-        </Link>
+        </Box>
       </Toolbar>
     </AppBar>
   );
