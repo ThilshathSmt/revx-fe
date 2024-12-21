@@ -24,7 +24,10 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  Box
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import HRLayout from "../../components/HRLayout"; // Import the new Layout component
 
 const UserManagement = () => {
@@ -175,8 +178,15 @@ const UserManagement = () => {
 
   return (
     <HRLayout>
-      <Typography variant="h4" gutterBottom>
-        User Management
+      <Typography
+        variant="h3"
+        gutterBottom
+        sx={{
+          textAlign: 'center', // Centers the text
+          color: '#15B2C0', // Apply the custom color
+        }}
+      >
+        Users List
       </Typography>
 
       {/* Create or Update User Button */}
@@ -239,21 +249,24 @@ const UserManagement = () => {
                     </>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                   <Button
                     variant="outlined"
                     color="primary"
                     onClick={() => handleUpdateUser(user)}
                   >
-                    Update
+                   <EditIcon/>
                   </Button>
                   <Button
                     variant="outlined"
                     color="error"
                     onClick={() => handleOpenDeleteDialog(user)} // Open delete confirmation
                   >
-                    Delete
+                    <DeleteIcon />
+
                   </Button>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
