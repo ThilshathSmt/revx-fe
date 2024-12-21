@@ -7,13 +7,6 @@ import { signOut } from 'next-auth/react'; // Import NextAuth's signOut function
 
 const Navbar = () => {
   const router = useRouter(); // Initialize router to handle redirection after sign-out
-
-  const handleSignOut = async () => {
-    // Call the NextAuth signOut function to clear the session
-    await signOut({ redirect: false });  // `redirect: false` prevents automatic redirection
-    router.push('/auth/signin');  // Redirect the user to the sign-in page after sign-out
-  };
-
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
@@ -49,7 +42,7 @@ const Navbar = () => {
           </IconButton>
 
           {/* Sign Out Button */}
-          <Button color="inherit" sx={{ color: 'white' }} onClick={handleSignOut}>
+          <Button color="inherit" sx={{ color: 'white' }} onClick={() => router.push('/auth/signout')}>
             Sign Out
           </Button>
         </Box>
