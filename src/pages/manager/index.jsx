@@ -5,15 +5,11 @@ import {
   Grid,
   Card,
   CardContent,
-  IconButton,
   List,
   ListItem,
   ListItemText,
   Paper,
-  Menu,
-  MenuItem,
 } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import ManagerLayout from '../../components/ManagerLayout'; // Import ManagerLayout
 
@@ -43,16 +39,6 @@ const recentActivities = [
 ];
 
 const ManagerDashboard = () => {
-  const [anchorEl, setAnchorEl] = useState(null);
-
-  const handleNotificationClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleCloseNotificationMenu = () => {
-    setAnchorEl(null);
-  };
-
   return (
     <ManagerLayout>
       <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
@@ -60,36 +46,6 @@ const ManagerDashboard = () => {
         <Typography variant="h3" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
           📊 Manager Dashboard
         </Typography>
-
-        {/* Notification Icon */}
-        <IconButton
-          sx={{
-            position: 'absolute',
-            top: 50,
-            right: 50,
-            color: '#153B60',
-          }}
-          onClick={handleNotificationClick}
-        >
-          <NotificationsIcon />
-        </IconButton>
-
-        {/* Notification Menu */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleCloseNotificationMenu}
-        >
-          <MenuItem onClick={handleCloseNotificationMenu}>
-            New task assigned to Jane Doe
-          </MenuItem>
-          <MenuItem onClick={handleCloseNotificationMenu}>
-            Project deadline extended for team A
-          </MenuItem>
-          <MenuItem onClick={handleCloseNotificationMenu}>
-            Meeting scheduled with client XYZ
-          </MenuItem>
-        </Menu>
 
         {/* Quick Stats Cards */}
         <Grid container spacing={3} sx={{ marginBottom: 4 }}>

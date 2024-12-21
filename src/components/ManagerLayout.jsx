@@ -1,3 +1,5 @@
+// src/components/ManagerLayout.jsx
+
 import React from 'react';
 import ManagerSidebar from './ManagerSidebar'; // Import ManagerSidebar
 import Navbar from './Navbar';
@@ -6,29 +8,31 @@ import { Box } from '@mui/material';
 
 const ManagerLayout = ({ children }) => {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <ManagerSidebar />
+    
 
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Navbar */}
-        {/* <Navbar /> */}
-
+        <Navbar />
+        <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <ManagerSidebar />
         <Box
           component="main"
           sx={{
             flex: 1,
             padding: 3,
             backgroundColor: 'background.default',
-            marginLeft: '260px', // Account for the width of the sidebar
+            marginLeft: '260px', // Adjust the margin to match the width of the sidebar
+            overflow: 'auto', // Ensure content is scrollable if it overflows
           }}
         >
           {children}
         </Box>
 
-        {/* Footer */}
-        <Footer />
+        
       </Box>
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };
