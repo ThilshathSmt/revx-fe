@@ -32,7 +32,7 @@ const ManagerSidebar = () => {
       
       
             {/* Profile Section centered */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
+            <Box onClick={() => handleNavigation('/profile/profile')} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
               <Avatar alt="Manager" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
               <Box sx={{ textAlign: 'center' }}>
                 <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
