@@ -23,19 +23,22 @@ const Profile = () => {
     const fetchUserDetails = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5001/api/user/fetch/${user.id}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${user.id}`,
           {
             headers: {
               Authorization: `Bearer ${user.token}`,
             },
           }
         );
+      
         setUserDetails(response.data);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching user details:', err);
         setError('Failed to fetch user details.');
         setLoading(false);
       }
+      
     };
 
     fetchUserDetails();
