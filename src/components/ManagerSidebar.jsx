@@ -64,7 +64,7 @@ const ManagerSidebar = () => {
         </ListItem>
 
         {/* Goal Management */}
-        <ListItem button onClick={() => handleNavigation('/manager/goals')}>
+        <ListItem button onClick={() => handleNavigation('/manager/goal')}>
           <ListItemIcon>
             <AssignmentIcon sx={{ color: 'white' }} />
           </ListItemIcon>

@@ -59,7 +59,7 @@ const HRSidebar = () => {
       <Box onClick={() => handleNavigation('/profile/profile')} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
         <Avatar alt="HR" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
         <Box sx={{ textAlign: 'center' }}>
-          <Typography   variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
+          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
             HR Admin
           </Typography>
           <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -95,6 +95,21 @@ const HRSidebar = () => {
           <ListItemText
             primary="User Management"
             secondary="Add/Edit/Delete Users"
+            primaryTypographyProps={{ color: 'white' }}
+            secondaryTypographyProps={{
+              sx: { color: 'rgba(255, 255, 255, 0.6)' },
+            }}
+          />
+        </ListItem>
+
+        {/* Goal Management */}
+        <ListItem button onClick={() => handleNavigation('/hr/goal')} sx={{ marginBottom: 2 }}>
+          <ListItemIcon>
+            <PeopleIcon sx={{ color: 'white' }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Goal Setting"
+            secondary="Add/Edit/Delete Goals"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
