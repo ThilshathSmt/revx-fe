@@ -62,7 +62,7 @@ const UserManagement = () => {
   // Fetch users function
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:5001/api/user/all", {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setUsers(response.data);
@@ -76,8 +76,8 @@ const UserManagement = () => {
   // Handle creating or updating a user
   const handleSaveUser = async () => {
     const url = isUpdate
-      ? `http://localhost:5001/api/user/update/${selectedUser._id}`
-      : "http://localhost:5001/api/user/create";
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${selectedUser._id}`
+      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/create`;
     const method = isUpdate ? "put" : "post";
 
     try {
@@ -138,7 +138,7 @@ const UserManagement = () => {
     try {
       if (!userToDelete) return;
 
-      await axios.delete(`http://localhost:5001/api/user/delete/${userToDelete._id}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/delete/${userToDelete._id}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
