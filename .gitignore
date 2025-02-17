@@ -2,3 +2,5 @@ node_modules
 .next
 .env.local
 .env
+package-lock.json
+.DS_Store
