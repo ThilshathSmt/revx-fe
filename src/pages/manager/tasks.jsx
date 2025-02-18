@@ -176,11 +176,11 @@ const TaskManagement = () => {
    const getStatusStyle = (status) => {
      switch (status) {
        case "scheduled":
-         return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "4px" }; // Light gray
+         return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" }; // Light gray
        case "in-progress":
-         return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "4px" }; // Light blue
+         return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" }; // Light blue
        case "completed":
-         return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "4px" }; // Light green
+         return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" }; // Light green
        default:
          return {};
      }
