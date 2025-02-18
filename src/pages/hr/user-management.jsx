@@ -33,6 +33,7 @@ import HRLayout from "../../components/HRLayout"; // Import the new Layout compo
 const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]); // State to store
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newUser, setNewUser] = useState({
@@ -41,7 +42,7 @@ const UserManagement = () => {
     password: "",
     role: "",
     employeeDetails: {},
-    managerDetails: {},
+    managerDetails: {department: "",},
     hrDetails: {},
   });
   const [open, setOpen] = useState(false);
@@ -56,8 +57,21 @@ const UserManagement = () => {
       router.push("/"); // Redirect non-HR users to the homepage
     } else {
       fetchUsers();
+      fetchDepartments(); // Fetch departments for dropdown
     }
   }, [user, router]);
+
+  // Fetch all departments for the dropdown
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setDepartments(response.data);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+    }
+  };
 
   // Fetch users function
   const fetchUsers = async () => {
@@ -223,9 +237,9 @@ const UserManagement = () => {
                 <TableCell>
                   {user.role === "employee" && (
                     <>
-                      <Typography variant="body2">
+                      {/* <Typography variant="body2">
                         <strong>Department:</strong> {user.employeeDetails.department || "N/A"}
-                      </Typography>
+                      </Typography> */}
                       <Typography variant="body2">
                         <strong>Designation:</strong> {user.employeeDetails.designation || "N/A"}
                       </Typography>
@@ -234,7 +248,7 @@ const UserManagement = () => {
                   {user.role === "manager" && (
                     <>
                       <Typography variant="body2">
-                        <strong>Department:</strong> {user.managerDetails.department || "N/A"}
+                        <strong>Department:</strong> {user.managerDetails.department?.departmentName|| "N/A"}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Team:</strong> {user.managerDetails.team ? user.managerDetails.team.join(", ") : "N/A"}
@@ -243,9 +257,7 @@ const UserManagement = () => {
                   )}
                   {user.role === "hr" && (
                     <>
-                      <Typography variant="body2">
-                        <strong>Assigned Departments:</strong> {user.hrDetails.assignedDepartments ? user.hrDetails.assignedDepartments.join(", ") : "N/A"}
-                      </Typography>
+                      
                     </>
                   )}
                 </TableCell>
@@ -330,7 +342,7 @@ const UserManagement = () => {
             {newUser.role === "employee" && (
               <>
                 <Grid item xs={12}>
-                  <TextField
+                  {/* <TextField
                     label="Department"
                     variant="outlined"
                     fullWidth
@@ -345,7 +357,7 @@ const UserManagement = () => {
                         },
                       })
                     }
-                  />
+                  /> */}
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
@@ -370,22 +382,25 @@ const UserManagement = () => {
             {newUser.role === "manager" && (
               <>
                 <Grid item xs={12}>
-                  <TextField
-                    label="Department"
-                    variant="outlined"
-                    fullWidth
-                    name="managerDetails.department"
-                    value={newUser.managerDetails.department || ""}
-                    onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        managerDetails: {
-                          ...newUser.managerDetails,
-                          department: e.target.value,
-                        },
-                      })
-                    }
-                  />
+                <FormControl fullWidth margin="dense">
+               <InputLabel>Department</InputLabel>
+               <Select
+                 name="managerDetails.department"
+                 value={newUser.managerDetails.department}
+                 onChange={(e) =>
+                   setNewUser((prevState) => ({
+                     ...prevState,
+                     managerDetails: { ...prevState.managerDetails, department: e.target.value },
+                   }))
+                 }
+               >
+                 {departments.map((dept) => (
+                   <MenuItem key={dept._id} value={dept._id}>
+                     {dept.departmentName}
+                   </MenuItem>
+                 ))}
+               </Select>
+             </FormControl>
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
@@ -410,7 +425,7 @@ const UserManagement = () => {
 
             {newUser.role === "hr" && (
               <Grid item xs={12}>
-                <TextField
+                {/* <TextField
                   label="Assigned Departments"
                   variant="outlined"
                   fullWidth
@@ -425,7 +440,7 @@ const UserManagement = () => {
                       },
                     })
                   }
-                />
+                /> */}
               </Grid>
             )}
           </Grid>
