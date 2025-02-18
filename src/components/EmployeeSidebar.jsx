@@ -63,13 +63,13 @@ const EmployeeSidebar = () => {
         </ListItem>
 
         {/* Goal Management */}
-        <ListItem button onClick={() => handleNavigation('/employee/goals')}>
+        <ListItem button onClick={() => handleNavigation('/employee/tasks')}>
           <ListItemIcon>
             <AssignmentIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
-            primary="My Goals"
-            secondary="View and manage your personal goals"
+            primary="My Tasks"
+            secondary="View and manage your personal tasks"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },

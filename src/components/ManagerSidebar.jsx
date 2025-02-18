@@ -3,6 +3,7 @@ import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, A
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import FlagIcon  from '@mui/icons-material/Flag';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -64,13 +65,28 @@ const ManagerSidebar = () => {
         </ListItem>
 
         {/* Goal Management */}
-        <ListItem button onClick={() => handleNavigation('/manager/goal')}>
+        <ListItem button onClick={() => handleNavigation('/manager/goals')}>
+          <ListItemIcon>
+            <FlagIcon  sx={{ color: 'white' }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Goal Management"
+            secondary="Set Status and View  Goals"
+            primaryTypographyProps={{ color: 'white' }}
+            secondaryTypographyProps={{
+              sx: { color: 'rgba(255, 255, 255, 0.6)' },
+            }}
+          />
+        </ListItem>
+
+        {/* Task Management */}
+        <ListItem button onClick={() => handleNavigation('/manager/tasks')}>
           <ListItemIcon>
             <AssignmentIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
-            primary="Goal Management"
-            secondary="Set/View/Edit Employee Goals"
+            primary="Task Management"
+            secondary="Provide for Employees"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
