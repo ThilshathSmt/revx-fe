@@ -164,7 +164,7 @@ const Profile = () => {
                   transform: 'scale(1.05)',
                 },
               }}
-              onClick={() => router.push('/auth/signout')}
+              onClick={() => router.push(`/${userDetails?.role}`)}
             >
               Close
             </Button>
