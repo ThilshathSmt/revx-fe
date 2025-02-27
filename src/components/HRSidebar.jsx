@@ -3,7 +3,7 @@ import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, A
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import DomainIcon from '@mui/icons-material/Domain';
-import FlagIcon  from '@mui/icons-material/Flag';
+import FlagIcon from '@mui/icons-material/Flag';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -61,7 +61,7 @@ const HRSidebar = () => {
       <Box onClick={() => handleNavigation('/profile/profile')} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
         <Avatar alt="HR" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
         <Box sx={{ textAlign: 'center' }}>
-          <Typography   variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
+          <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
             HR Admin
           </Typography>
           <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
@@ -88,7 +88,7 @@ const HRSidebar = () => {
             }}
           />
         </ListItem>
-            {/* department Management */}
+        {/* Department Management */}
         <ListItem button onClick={() => handleNavigation('/hr/department')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
             <DomainIcon sx={{ color: 'white' }} />
@@ -96,6 +96,21 @@ const HRSidebar = () => {
           <ListItemText
             primary="Department "
             secondary="Add/Edit/Delete Department"
+            primaryTypographyProps={{ color: 'white' }}
+            secondaryTypographyProps={{
+              sx: { color: 'rgba(255, 255, 255, 0.6)' },
+            }}
+          />
+        </ListItem>
+
+        {/* Team Management */}
+        <ListItem button onClick={() => handleNavigation('/hr/team')} sx={{ marginBottom: 2 }}>
+          <ListItemIcon>
+            <DomainIcon sx={{ color: 'white' }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Team "
+            secondary="Add/Edit/Delete Team"
             primaryTypographyProps={{ color: 'white' }}
             secondaryTypographyProps={{
               sx: { color: 'rgba(255, 255, 255, 0.6)' },
@@ -121,7 +136,7 @@ const HRSidebar = () => {
         {/* Goal Management */}
         <ListItem button onClick={() => handleNavigation('/hr/goal')} sx={{ marginBottom: 2 }}>
           <ListItemIcon>
-            <FlagIcon  sx={{ color: 'white' }} />
+            <FlagIcon sx={{ color: 'white' }} />
           </ListItemIcon>
           <ListItemText
             primary="Goal Setting"
