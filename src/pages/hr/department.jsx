@@ -32,12 +32,12 @@ const DepartmentManagement = () => {
     departmentName: "",
     description: "",
   });
+  const [formErrors, setFormErrors] = useState({}); // State for validation errors
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const router = useRouter();
 
-  // Redirect non-HR users and fetch initial data
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/");
@@ -46,7 +46,6 @@ const DepartmentManagement = () => {
     }
   }, [user, router]);
 
-  // Fetch all departments
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -60,8 +59,22 @@ const DepartmentManagement = () => {
     }
   };
 
-  // Save or update a department
+  // Validate form fields
+  const validateForm = () => {
+    let errors = {};
+    if (!newDepartment.departmentName.trim()) {
+      errors.departmentName = "Department name is required";
+    }
+    if (!newDepartment.description.trim()) {
+      errors.description = "Description is required";
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveDepartment = async () => {
+    if (!validateForm()) return; // Prevent submission if validation fails
+
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${selectedDepartment._id}`
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/create`;
@@ -81,7 +94,6 @@ const DepartmentManagement = () => {
     }
   };
 
-  // Open the update dialog with selected department data
   const handleUpdateDepartment = (department) => {
     setNewDepartment({
       departmentName: department.departmentName,
@@ -92,30 +104,31 @@ const DepartmentManagement = () => {
     setOpen(true);
   };
 
-  // Delete a department
   const handleDeleteDepartment = async (departmentId) => {
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${departmentId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      fetchDepartments(); // Refresh departments after deletion
+      fetchDepartments();
     } catch (err) {
       setError("Failed to delete department");
     }
   };
 
-  // Handle input changes for form fields
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewDepartment({ ...newDepartment, [name]: value });
+
+    // Clear validation errors when user starts typing
+    setFormErrors({ ...formErrors, [name]: "" });
   };
 
-  // Reset form and dialog state
   const resetForm = () => {
     setNewDepartment({
       departmentName: "",
       description: "",
     });
+    setFormErrors({});
     setOpen(false);
     setIsUpdate(false);
     setSelectedDepartment(null);
@@ -130,12 +143,10 @@ const DepartmentManagement = () => {
         Department Management
       </Typography>
 
-      {/* Create or Update Department Button */}
       <Button variant="contained" color="primary" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
         {isUpdate ? "Update Department" : "Create Department"}
       </Button>
 
-      {/* Departments Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -152,12 +163,9 @@ const DepartmentManagement = () => {
                 <TableCell>{department.description}</TableCell>
                 <TableCell>
                   <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                    {/* Edit Button */}
                     <Button variant="outlined" color="primary" onClick={() => handleUpdateDepartment(department)}>
                       <EditIcon />
                     </Button>
-
-                    {/* Delete Button */}
                     <Button variant="outlined" color="error" onClick={() => handleDeleteDepartment(department._id)}>
                       <DeleteIcon />
                     </Button>
@@ -169,12 +177,9 @@ const DepartmentManagement = () => {
         </Table>
       </TableContainer>
 
-      {/* Create or Update Department Dialog */}
       <Dialog open={open} onClose={resetForm}>
         <DialogTitle>{isUpdate ? "Update Department" : "Create New Department"}</DialogTitle>
         <DialogContent>
-
-          {/* Department Name */}
           <TextField
             label="Department Name"
             name="departmentName"
@@ -182,9 +187,10 @@ const DepartmentManagement = () => {
             value={newDepartment.departmentName}
             onChange={handleInputChange}
             margin="dense"
+            error={!!formErrors.departmentName} // Show red border if error exists
+            helperText={formErrors.departmentName} // Show error message
           />
 
-          {/* Description */}
           <TextField
             label="Description"
             name="description"
@@ -194,16 +200,18 @@ const DepartmentManagement = () => {
             value={newDepartment.description}
             onChange={handleInputChange}
             margin="dense"
+            error={!!formErrors.description}
+            helperText={formErrors.description}
           />
         </DialogContent>
 
-        {/* Dialog Actions */}
         <DialogActions>
           <Button onClick={resetForm} color="primary">Cancel</Button>
-          <Button onClick={handleSaveDepartment} color="primary">{isUpdate ? "Update" : "Save"}</Button>
+          <Button onClick={handleSaveDepartment} color="primary">
+            {isUpdate ? "Update" : "Save"}
+          </Button>
         </DialogActions>
       </Dialog>
-
     </HRLayout>
   );
 };

@@ -20,7 +20,7 @@ export const useAuth = () => {
   const handleSignOut = async () => {
     try {
       // Call the backend API to log out the user
-      const response = await fetch("http://localhost:5001/api/auth/logout", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
