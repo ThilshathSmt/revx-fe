@@ -46,9 +46,23 @@ const Profile = () => {
         );
 
         setUserDetails(response.data);
-        setImagePreview(`${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profilePicture}`);
         setUsername(response.data.username);
         setEmail(response.data.email);
+
+        // Fetch profile picture
+        const profilePictureResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`,
+          {
+            headers: {
+              Authorization: `Bearer ${user.token}`,
+            },
+            responseType: 'blob',
+          }
+        );
+
+        const imageUrl = URL.createObjectURL(profilePictureResponse.data);
+        setImagePreview(imageUrl);
+
         setLoading(false);
       } catch (err) {
         console.error('Error fetching user details:', err);
@@ -65,7 +79,6 @@ const Profile = () => {
     if (file && file.size <= 5 * 1024 * 1024) {
       setProfilePicture(file);
       setFileError('');
-      setImagePreview(URL.createObjectURL(file));
     } else {
       setFileError('File size should not exceed 5MB.');
     }
@@ -90,17 +103,17 @@ const Profile = () => {
       );
 
       if (response.status === 200) {
-        const updatedProfilePicture = response.data.profilePicture.startsWith('/')
+        const updatedProfilePicture = response.data.profilePicture
           ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profilePicture}`
-          : response.data.profilePicture;
+          : null;
 
-        setUserDetails((prevState) => ({
-          ...prevState,
-          profilePicture: updatedProfilePicture,
-        }));
-        setImagePreview(updatedProfilePicture);
-        setSnackbarMessage('Profile picture updated successfully');
-        setOpenSnackbar(true);
+        if (updatedProfilePicture) {
+          setImagePreview(updatedProfilePicture);
+          setSnackbarMessage('Profile picture updated successfully');
+          setOpenSnackbar(true);
+        } else {
+          setError('Profile picture URL not returned from server.');
+        }
       }
     } catch (err) {
       console.error('Error uploading profile picture:', err);
@@ -264,56 +277,38 @@ const Profile = () => {
           </Grid>
           <Divider sx={{ marginY: 3 }} />
           <Box sx={{ textAlign: 'center', marginTop: 4 }}>
-  <Grid container spacing={2} justifyContent="center">
-    <Grid item xs={8} sm={4} md={4}>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handleOpenEditProfileDialog}
-        sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-      >
-        Edit Profile
-      </Button>
-    </Grid>
-    <Grid item xs={12} sm={6} md={4}>
-      <Button
-        variant="contained"
-        color="secondary"
-        onClick={() => router.push(`/${userDetails?.role}`)}
-        sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-      >
-        Go to Dashboard
-      </Button>
-    </Grid>
-    <Grid item xs={12} sm={6} md={4}>
-      <Button
-        variant="contained"
-        color="warning"
-        onClick={handleOpenPasswordDialog}
-        sx={{ width: '100%', height: '48px', fontSize: '16px' }}
-      >
-        Reset Password
-      </Button>
-    </Grid>
-  </Grid>
-</Box>
-
-          {/* Profile Picture Upload */}
-          <Box sx={{ textAlign: 'center', marginTop: 3 }}>
-            <input type="file" accept="image/*" onChange={handleProfilePictureChange} />
-            <Button variant="contained" color="primary" onClick={handleUploadProfilePicture} sx={{ marginTop: 2 }}>
-              Upload Profile Picture
-            </Button>
-            {fileError && <Typography color="error">{fileError}</Typography>}
-            {imagePreview && (
-              <Box sx={{ textAlign: 'center', marginTop: 2 }}>
-                <img
-                  src={imagePreview}
-                  alt="Profile Preview"
-                  style={{ width: 100, height: 100, borderRadius: '50%' }}
-                />
-              </Box>
-            )}
+            <Grid container spacing={2} justifyContent="center">
+              <Grid item xs={8} sm={4} md={4}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenEditProfileDialog}
+                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
+                >
+                  Edit Profile
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => router.push(`/${userDetails?.role}`)}
+                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
+                >
+                  Go to Dashboard
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  onClick={handleOpenPasswordDialog}
+                  sx={{ width: '100%', height: '48px', fontSize: '16px' }}
+                >
+                  Reset Password
+                </Button>
+              </Grid>
+            </Grid>
           </Box>
         </Paper>
       </Container>
@@ -382,19 +377,28 @@ const Profile = () => {
           />
           <TextField
             label="Email"
+            type="email"
             fullWidth
             value={updatedEmail}
             onChange={(e) => setUpdatedEmail(e.target.value)}
             margin="normal"
             required
           />
+          {/* Profile Picture Upload */}
+          <Box sx={{ textAlign: 'center', marginTop: 3 }}>
+            <input type="file" accept="image/*" onChange={handleProfilePictureChange} />
+            <Button variant="contained" color="primary" onClick={handleUploadProfilePicture} sx={{ marginTop: 2 }}>
+              Upload Profile Picture
+            </Button>
+            {fileError && <Typography color="error">{fileError}</Typography>}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseEditProfileDialog} color="primary">
             Cancel
           </Button>
           <Button onClick={handleProfileUpdate} color="primary">
-            Save Changes
+            Update Profile
           </Button>
         </DialogActions>
       </Dialog>
