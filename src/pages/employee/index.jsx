@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Typography,
@@ -10,14 +11,15 @@ import {
   ListItem,
   ListItemText,
   Divider,
+  Avatar,
+  CircularProgress,
+  Snackbar,
 } from '@mui/material';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import FeedbackIcon from '@mui/icons-material/Feedback';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import EmployeeLayout from '../../components/EmployeeLayout'; // Import EmployeeLayout
+import EmployeeLayout from '../../components/EmployeeLayout';
+import { useAuth } from '../../hooks/useAuth';
+import MuiAlert from '@mui/material/Alert';
 
-// Sample Data for Visualizations
 const performanceData = [
   { month: 'Jan', score: 70 },
   { month: 'Feb', score: 75 },
@@ -35,76 +37,93 @@ const taskData = [
 
 const COLORS = ['#4caf50', '#2196f3', '#f44336'];
 
-const recentActivities = [
-  'Goal assigned: Improve coding skills',
-  'Self-assessment submitted for Q2',
-  'Feedback received from Manager: Great progress!',
-  'Upcoming meeting with HR for career planning',
-];
-
 const EmployeeDashboard = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [employeeDetails, setEmployeeDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setError('User is not authenticated.');
+      setLoading(false);
+      return;
+    }
+
+    const fetchEmployeeDetails = async () => {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${user.id}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        setEmployeeDetails(response.data);
+
+        const profilePicResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+          responseType: 'blob',
+        });
+        setImagePreview(URL.createObjectURL(profilePicResponse.data));
+      } catch (err) {
+        setError('Failed to fetch employee details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeDetails();
+  }, [user, isAuthenticated]);
+
+  if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 5 }} />;
+  if (error) return <Typography color="error">{error}</Typography>;
+
   return (
     <EmployeeLayout>
-      <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-          <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-            📊 Employee Dashboard
-          </Typography>
-        </Box>
+      <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
+      <Grid container spacing={4} alignItems="center" justifyContent="center" sx={{ marginBottom: 4 }}>
+  {/* User Information Section */}
+  <Grid item container xs={12} md={8} alignItems="center" spacing={4}>
+     {/* Left Side: Welcome Message */}
+    <Grid item xs={12} md={6} sx={{ transform: "translateX(-4cm)" }}>
+      <Typography variant="h2" fontWeight="bold" sx={{ whiteSpace: "nowrap" }}>
+        Welcome, {employeeDetails?.username}!
+      </Typography>
+    </Grid>
 
-        {/* Quick Stats Cards */}
+    {/* Right Side: Avatar */}
+    <Grid item xs={12} md={6} display="flex" flexDirection="column" alignItems="center" justifyContent="center"  sx={{ transform: "translateX(7cm)" }} >
+  <Avatar
+    src={imagePreview || '/default-avatar.png'}
+    sx={{
+      width: 120,
+      height: 120,
+      mb: 2, // Adds spacing between avatar and email
+      boxShadow: 3, // Adds a subtle shadow around the avatar for better visual emphasis
+    }}
+  />
+  <Typography variant="body2" color="textSecondary" align="center">
+    {employeeDetails?.email}
+  </Typography>
+</Grid>
+  </Grid>
+</Grid>
+
         <Grid container spacing={3} sx={{ marginBottom: 4 }}>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  📝 My Goals
-                </Typography>
-                <Typography variant="h4">3</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  👥 My Feedback
-                </Typography>
-                <Typography variant="h4">2</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  ⚠️ Pending Tasks
-                </Typography>
-                <Typography variant="h4">4</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  🎯 Progress Rate
-                </Typography>
-                <Typography variant="h4">78%</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          {['My Goals', 'My Feedback', 'Pending Tasks', 'Progress Rate'].map((title, index) => (
+            <Grid item xs={12} md={3} key={index}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
+                  <Typography variant="h4">{[3, 2, 4, '78%'][index]}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
 
-        {/* Performance Trends Graph */}
         <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            📈 Performance Trends
-          </Typography>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>Performance Trends</Typography>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={performanceData}>
               <CartesianGrid stroke="#ccc" />
@@ -116,11 +135,8 @@ const EmployeeDashboard = () => {
           </ResponsiveContainer>
         </Paper>
 
-        {/* Task Status Summary */}
         <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            🎯 Task Status Summary
-          </Typography>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>Task Status Summary</Typography>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={taskData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
@@ -131,39 +147,11 @@ const EmployeeDashboard = () => {
             </PieChart>
           </ResponsiveContainer>
         </Paper>
-
-        {/* Recent Activity Feed */}
-        <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            🔔 Recent Activity
-          </Typography>
-          <List>
-            {recentActivities.map((activity, index) => (
-              <ListItem key={index} divider>
-                <ListItemText primary={activity} />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-
-        {/* Notifications Panel (if you still want to keep it, else you can remove it) */}
-        <Paper sx={{ padding: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            ⚠️ Notifications
-          </Typography>
-          <List>
-            <ListItem>
-              <TrendingUpIcon color="error" />
-              <ListItemText primary="Overdue task: Submit self-assessment" />
-            </ListItem>
-            <Divider />
-            <ListItem>
-              <AssignmentIcon color="info" />
-              <ListItemText primary="Upcoming deadline: Complete project task" />
-            </ListItem>
-          </List>
-        </Paper>
       </Box>
+
+      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)}>
+        <MuiAlert severity="success">{snackbarMessage}</MuiAlert>
+      </Snackbar>
     </EmployeeLayout>
   );
 };

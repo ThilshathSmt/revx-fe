@@ -1,13 +1,35 @@
-import React from 'react';
-import { Box, List, ListItem, ListItemIcon, ListItemText, Divider, Typography, Avatar } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import EventNoteIcon from '@mui/icons-material/EventNote';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import { useRouter } from 'next/router';
+import React, { useState } from "react";
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Tooltip,
+  Divider,
+  Typography,
+  Avatar,
+} from "@mui/material";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import EventNoteIcon from "@mui/icons-material/EventNote";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import SettingsIcon from "@mui/icons-material/Settings";
+import MenuIcon from "@mui/icons-material/Menu";
+import { useRouter } from "next/router";
+
+const menuItems = [
+  { text: "Dashboard", icon: <DashboardIcon />, path: "/employee" },
+  { text: "My Tasks", icon: <AssignmentIcon />, path: "/employee/tasks" },
+  { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/employee/reviews" },
+  { text: "Reports", icon: <BarChartIcon />, path: "/employee/reports" },
+  { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
+];
 
 const EmployeeSidebar = () => {
   const router = useRouter();
+  const [open, setOpen] = useState(true);
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -15,102 +37,72 @@ const EmployeeSidebar = () => {
 
   return (
     <Box
-      sx={{
-        width: 260,
-        height: '100vh',
-        backgroundColor: '#153B60',
-        color: 'white',
-        boxShadow: 3,
-        display: 'flex',
-        flexDirection: 'column',
-        padding: 2,
-        position: 'fixed',
-      }}
+    sx={{
+      width: open ? 260 : 80,
+      height: "100vh",
+      backgroundColor: "#153B60",
+      color: "white",
+      boxShadow: 3,
+      display: "flex",
+      flexDirection: "column",
+      position: "fixed",
+      transition: "width 0.3s ease-in-out",
+      overflowX: "hidden",
+      "@media (max-width: 600px)": {
+        width: open ? "100%" : "0",
+      },
+    }}
     >
-      
-      
-            {/* Profile Section centered */}
-            <Box onClick={() => handleNavigation('/profile/profile')} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 3 }}>
-              <Avatar alt="Employee" src="" sx={{ marginBottom: 1, width: 100, height: 100 }} />
-              <Box sx={{ textAlign: 'center' }}>
-                <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'white' }}>
-                  CodeNex
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                  Employee
-                </Typography>
-              </Box>
-            </Box>
+      {/* Sidebar Header with Toggle Button */}
+      <Box
+       sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: open ? "space-between" : "center",
+        padding: "10px 15px",
+        backgroundColor: "#102A4D",
+      }}
+      >
+        {open && (
+          <Typography variant="h6" color="white">
+            Employee Panel
+          </Typography>
+        )}
+        <IconButton sx={{ color: "white" }} onClick={() => setOpen(!open)}>
+          <MenuIcon />
+        </IconButton>
+      </Box>
 
+      <Divider sx={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }} />
 
-      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginBottom: 2 }} />
-
-      {/* Sidebar Navigation List */}
-      <List sx={{ flexGrow: 1 }}>
-        {/* Dashboard */}
-        <ListItem button onClick={() => handleNavigation('/employee')}>
-          <ListItemIcon>
-            <DashboardIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Dashboard"
-            secondary="Overview of your tasks and goals"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
-
-        {/* Goal Management */}
-        <ListItem button onClick={() => handleNavigation('/employee/tasks')}>
-          <ListItemIcon>
-            <AssignmentIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="My Tasks"
-            secondary="View and manage your personal tasks"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
-
-        {/* Performance Reviews */}
-        <ListItem button onClick={() => handleNavigation('/employee/reviews')}>
-          <ListItemIcon>
-            <EventNoteIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Performance Reviews"
-            secondary="Review feedback and evaluations"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
-
-        {/* Reports */}
-        <ListItem button onClick={() => handleNavigation('/employee/reports')}>
-          <ListItemIcon>
-            <BarChartIcon sx={{ color: 'white' }} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Reports"
-            secondary="View your performance reports"
-            primaryTypographyProps={{ color: 'white' }}
-            secondaryTypographyProps={{
-              sx: { color: 'rgba(255, 255, 255, 0.6)' },
-            }}
-          />
-        </ListItem>
+      {/* Sidebar Menu List */}
+      <List>
+        {menuItems.map((item, index) => (
+          <Tooltip title={open ? "" : item.text} placement="right" key={index}>
+            <ListItem
+              button
+              onClick={() => handleNavigation(item.path)}
+              sx={{
+                marginBottom: 1,
+                padding: "10px 20px",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "white", minWidth: "40px" }}>
+                {item.icon}
+              </ListItemIcon>
+              {open && (
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ color: "white", fontWeight: "bold" }}
+                />
+              )}
+            </ListItem>
+          </Tooltip>
+        ))}
       </List>
-
-      <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginY: 2 }} />
-
-     
     </Box>
   );
 };

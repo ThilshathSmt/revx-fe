@@ -1,25 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   Box,
   Typography,
   Grid,
   Card,
   CardContent,
-  IconButton,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   Paper,
-  InputBase,
+  Avatar,
+  CircularProgress,
+  Snackbar,
 } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import WarningIcon from '@mui/icons-material/Warning';
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import HRLayout from '../../components/HRLayout'; // Importing Layout
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import HRLayout from '../../components/HRLayout';
+import { useAuth } from '../../hooks/useAuth';
+import MuiAlert from '@mui/material/Alert';
 
-// Sample Data for Visualizations
 const performanceData = [
   { month: 'Jan', score: 80 },
   { month: 'Feb', score: 85 },
@@ -29,154 +25,125 @@ const performanceData = [
   { month: 'Jun', score: 95 },
 ];
 
-const goalData = [
-  { name: 'Completed', value: 40 },
-  { name: 'In Progress', value: 35 },
-  { name: 'Overdue', value: 25 },
+const taskData = [
+  { name: 'Completed', value: 50 },
+  { name: 'In Progress', value: 30 },
+  { name: 'Overdue', value: 20 },
 ];
 
 const COLORS = ['#4caf50', '#2196f3', '#f44336'];
 
-const recentActivities = [
-  'Added new employee: John Doe',
-  'Feedback submitted for Q2 reviews',
-  'Reminder sent for pending reviews',
-  'New review cycle started: Q3 2024',
-];
-
 const HRDashboard = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [hrDetails, setHRDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      setError('User is not authenticated.');
+      setLoading(false);
+      return;
+    }
+
+    const fetchHRDetails = async () => {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${user.id}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        setHRDetails(response.data);
+
+        const profilePicResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+          responseType: 'blob',
+        });
+        setImagePreview(URL.createObjectURL(profilePicResponse.data));
+      } catch (err) {
+        setError('Failed to fetch HR details.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHRDetails();
+  }, [user, isAuthenticated]);
+
+  if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 5 }} />;
+  if (error) return <Typography color="error">{error}</Typography>;
+
   return (
     <HRLayout>
-      {/* Main Content */}
-      <Box sx={{ padding: 4, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-        {/* Heading */}
-        <Typography variant="h3" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-          📊 HR Dashboard
-        </Typography>
-
-        {/* Quick Stats Cards */}
-        <Grid container spacing={3} sx={{ marginBottom: 4 }}>
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  📈 Active Review Cycles
-                </Typography>
-                <Typography variant="h4">3</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  👥 Employees Reviewed
-                </Typography>
-                <Typography variant="h4">45</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  ⚠️ Pending Reviews
-                </Typography>
-                <Typography variant="h4">12</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={3}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', marginBottom: 1 }}>
-                  🎯 Goal Completion Rate
-                </Typography>
-                <Typography variant="h4">78%</Typography>
-              </CardContent>
-            </Card>
+      <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
+        <Grid container spacing={4} alignItems="center" justifyContent="center" sx={{ marginBottom: 4 }}>
+          <Grid item container xs={12} md={8} alignItems="center" spacing={4}>
+            <Grid item xs={12} md={6} sx={{ transform: "translateX(-4cm)" }}>
+              <Typography variant="h2" fontWeight="bold" sx={{ whiteSpace: 'nowrap' }}>
+                Welcome, {hrDetails?.username}!
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6} display="flex" flexDirection="column" alignItems="center" justifyContent="center"  sx={{ transform: "translateX(7cm)" }} >
+              <Avatar
+                src={imagePreview || '/default-avatar.png'}
+                sx={{
+                  width: 120,
+                  height: 120,
+                  mb: 2, // Adds spacing between avatar and email
+                  boxShadow: 3, // Adds a subtle shadow around the avatar for better visual emphasis
+                }}
+              />
+              <Typography variant="body2" color="textSecondary" align="center">
+                {hrDetails?.email}
+              </Typography>
+            </Grid>
           </Grid>
         </Grid>
 
-        {/* Performance Trends Graph */}
+        <Grid container spacing={3} sx={{ marginBottom: 4 }}>
+          {['Active Cycles', 'Employees Reviewed', 'Pending Reviews', 'Completion Rate'].map((title, index) => (
+            <Grid item xs={12} md={3} key={index}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>{title}</Typography>
+                  <Typography variant="h4">{[3, 45, 12, '78%'][index]}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
         <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            📈 Performance Trends
-          </Typography>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>Performance Trends</Typography>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={performanceData}>
               <CartesianGrid stroke="#ccc" />
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Legend />
               <Line type="monotone" dataKey="score" stroke="#8884d8" />
             </LineChart>
           </ResponsiveContainer>
         </Paper>
 
-        {/* Goal Status Summary */}
         <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            🎯 Goal Status Summary
-          </Typography>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>Task Status Summary</Typography>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={goalData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                {goalData.map((entry, index) => (
+              <Pie data={taskData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                {taskData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
             </PieChart>
           </ResponsiveContainer>
         </Paper>
-
-        {/* Recent Activity Feed */}
-        <Paper sx={{ padding: 3, marginBottom: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            🔔 Recent Activity
-          </Typography>
-          <List>
-            {recentActivities.map((activity, index) => (
-              <ListItem key={index} divider>
-                <ListItemText primary={activity} />
-              </ListItem>
-            ))}
-          </List>
-        </Paper>
-
-        {/* Notifications Panel */}
-        <Paper sx={{ padding: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            ⚠️ Notifications
-          </Typography>
-          <List>
-            <ListItem>
-              <IconButton color="error">
-                <WarningIcon />
-              </IconButton>
-              <ListItemText primary="Overdue reviews: 5 employees" />
-            </ListItem>
-            <Divider />
-            <ListItem>
-              <IconButton color="info">
-                <NotificationsIcon />
-              </IconButton>
-              <ListItemText primary="Upcoming deadline: Q2 review cycle ends in 3 days" />
-            </ListItem>
-            <Divider />
-            <ListItem>
-              <IconButton color="primary">
-                <TrendingUpIcon />
-              </IconButton>
-              <ListItemText primary="System update: New review templates available" />
-            </ListItem>
-          </List>
-        </Paper>
       </Box>
+
+      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={() => setSnackbarOpen(false)}>
+        <MuiAlert severity="success">{snackbarMessage}</MuiAlert>
+      </Snackbar>
     </HRLayout>
   );
 };
