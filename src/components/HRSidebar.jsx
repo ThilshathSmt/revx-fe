@@ -26,7 +26,6 @@ const menuItems = [
   { text: "Department", icon: <DomainIcon />, path: "/hr/department" },
   { text: "Team", icon: <DomainIcon />, path: "/hr/team" },
   { text: "User Management", icon: <PeopleIcon />, path: "/hr/user-management" },
-  { text: "Goal Setting", icon: <FlagIcon />, path: "/hr/goal" },
   { text: "Review Cycles", icon: <EventNoteIcon />, path: "/hr/reviews" },
   { text: "Notifications", icon: <NotificationsIcon />, path: "/hr/notifications" },
   { text: "Reports", icon: <BarChartIcon />, path: "/hr/reports" },

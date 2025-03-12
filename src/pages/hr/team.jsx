@@ -17,6 +17,12 @@ import {
   DialogTitle,
   Button,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Box
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -25,28 +31,27 @@ import HRLayout from "../../components/HRLayout";
 const TeamManagement = () => {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newTeam, setNewTeam] = useState({
     teamName: "",
+    members: []
   });
-  const [formErrors, setFormErrors] = useState({}); // State for validation errors
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
-
   const router = useRouter();
 
-  // Redirect non-HR users and fetch initial data
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/");
     } else {
       fetchTeams();
+      fetchEmployees();
     }
-  }, [user]);
+  }, [user, router]);
 
-  // Fetch all teams
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`, {
@@ -60,19 +65,23 @@ const TeamManagement = () => {
     }
   };
 
-  // Validate form fields
-  const validateForm = () => {
-    let errors = {};
-    if (!newTeam.teamName.trim()) {
-      errors.teamName = "Team name is required";
+  const fetchEmployees = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const employees = response.data.filter(u => u.role === 'employee');
+      setEmployees(employees);
+    } catch (err) {
+      console.error("Failed to fetch employees:", err);
     }
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
   };
 
-  // Save or update a team
   const handleSaveTeam = async () => {
-    if (!validateForm()) return; // Prevent submission if validation fails
+    if (!newTeam.teamName.trim()) {
+      setError("Team name is required");
+      return;
+    }
 
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
@@ -82,7 +91,10 @@ const TeamManagement = () => {
       await axios({
         method: isUpdate ? "put" : "post",
         url,
-        data: newTeam,
+        data: {
+          ...newTeam,
+          createdBy: user.id
+        },
         headers: { Authorization: `Bearer ${user.token}` },
       });
       fetchTeams();
@@ -92,17 +104,16 @@ const TeamManagement = () => {
     }
   };
 
-  // Open the update dialog with selected team data
   const handleUpdateTeam = (team) => {
     setNewTeam({
       teamName: team.teamName,
+      members: team.members.map(m => m._id)
     });
     setIsUpdate(true);
     setSelectedTeam(team);
     setOpen(true);
   };
 
-  // Delete a team
   const handleDeleteTeam = async (teamId) => {
     try {
       await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
@@ -114,90 +125,125 @@ const TeamManagement = () => {
     }
   };
 
-  // Handle input changes for form fields
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewTeam({ ...newTeam, [name]: value });
-
-    // Clear validation errors when user starts typing
-    setFormErrors({ ...formErrors, [name]: "" });
+  const handleMemberChange = (event) => {
+    const { value } = event.target;
+    setNewTeam({
+      ...newTeam,
+      members: typeof value === 'string' ? value.split(',') : value,
+    });
   };
 
-  // Reset form and dialog state
   const resetForm = () => {
     setNewTeam({
       teamName: "",
+      members: []
     });
-    setFormErrors({});
     setOpen(false);
     setIsUpdate(false);
     setSelectedTeam(null);
   };
 
- if (loading) return <Typography>Loading teams...</Typography>;
- if (error) return <Typography>{error}</Typography>;
+  if (loading) return <Typography>Loading teams...</Typography>;
+  if (error) return <Typography color="error">{error}</Typography>;
 
- return (
-   <HRLayout>
-     <Typography variant="h3" sx={{ textAlign: "center", color: "#15B2C0" }}>
-       Team Management
-     </Typography>
-     <Button variant="contained" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
-       {isUpdate ? "Update Team" : "Create Team"}
-     </Button>
-     <TableContainer component={Paper}>
-       <Table>
-         <TableHead>
-           <TableRow>
-             <TableCell>Team Name</TableCell>
-             <TableCell>Actions</TableCell>
-           </TableRow>
-         </TableHead>
-         <TableBody>
-           {teams.map((team) => (
-             <TableRow key={team._id}>
-               <TableCell>{team.teamName}</TableCell>
-               <TableCell>
-                 <Button onClick={() => handleUpdateTeam(team)}>
-                   <EditIcon />
-                 </Button>
-                 <Button onClick={() => handleDeleteTeam(team._id)}>
-                   <DeleteIcon />
-                 </Button>
-               </TableCell>
-             </TableRow>
-           ))}
-         </TableBody>
-       </Table>
-     </TableContainer>
+  return (
+    <HRLayout>
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+        Team Management
+      </Typography>
 
-     {/* Create/Update Dialog */}
-     <Dialog open={open} onClose={resetForm}>
-       <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
-       <DialogContent>
+      <Button variant="contained" onClick={() => setOpen(true)} sx={{ mb: 3 }}>
+        {isUpdate ? "Update Team" : "Create New Team"}
+      </Button>
 
-         {/* Team Name */}
-         <TextField
-           label="Team Name"
-           name="teamName"
-           fullWidth
-           value={newTeam.teamName}
-           onChange={handleInputChange}
-           margin="dense"
-           error={!!formErrors.teamName}
-           helperText={formErrors.teamName}
-         />
-       </DialogContent>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Team Name</strong></TableCell>
+              <TableCell><strong>Members</strong></TableCell>
+              <TableCell><strong>Actions</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {teams.map((team) => (
+              <TableRow key={team._id}>
+                <TableCell>{team.teamName}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {team.members.map(member => (
+                      <Chip 
+                        key={member._id} 
+                        label={member.username} 
+                        variant="outlined"
+                      />
+                    ))}
+                  </Box>
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button variant="outlined" onClick={() => handleUpdateTeam(team)}>
+                      <EditIcon />
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      color="error" 
+                      onClick={() => handleDeleteTeam(team._id)}
+                    >
+                      <DeleteIcon />
+                    </Button>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-       {/* Dialog Actions */}
-       <DialogActions>
-         <Button onClick={resetForm}>Cancel</Button>
-         <Button onClick={handleSaveTeam}>{isUpdate ? "Update" : "Save"}</Button>
-       </DialogActions>
-     </Dialog>
-
-   </HRLayout>
- );
+      <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
+        <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Team Name"
+            fullWidth
+            value={newTeam.teamName}
+            onChange={(e) => setNewTeam({...newTeam, teamName: e.target.value})}
+            margin="normal"
+            required
+          />
+          
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Team Members</InputLabel>
+            <Select
+              multiple
+              value={newTeam.members}
+              onChange={handleMemberChange}
+              renderValue={(selected) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {selected.map((value) => {
+                    const member = employees.find(e => e._id === value);
+                    return <Chip key={value} label={member?.username || value} />;
+                  })}
+                </Box>
+              )}
+            >
+              {employees.map((employee) => (
+                <MenuItem key={employee._id} value={employee._id}>
+                  {employee.username} ({employee.email})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={resetForm}>Cancel</Button>
+          <Button onClick={handleSaveTeam} variant="contained">
+            {isUpdate ? "Update" : "Create"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </HRLayout>
+  );
 };
 
 export default TeamManagement;
