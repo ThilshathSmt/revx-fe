@@ -47,18 +47,26 @@ const TaskManagement = () => {
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [teamEmployees, setTeamEmployees] = useState([]); // Employees of selected team
   const router = useRouter();
 
-  // Redirect non-manager users and fetch initial data
   useEffect(() => {
     if (!user || user.role !== "manager") {
       router.push("/");
     } else {
       fetchTasks();
       fetchGoals();
-      fetchEmployees();
     }
   }, [user, router]);
+
+  // Fetch team employees when projectId changes
+  useEffect(() => {
+    if (newTask.projectId) {
+      fetchTeamEmployees(newTask.projectId);
+    } else {
+      setTeamEmployees([]);
+    }
+  }, [newTask.projectId]);
 
   // Fetch all tasks assigned to the logged-in manager
   const fetchTasks = async () => {
@@ -77,27 +85,43 @@ const TaskManagement = () => {
   // Fetch all goals (projects)
   const fetchGoals = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/all`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setGoals(response.data);
+      setLoading(false); // Ensure loading is set to false after fetching goals
     } catch (err) {
-      console.error("Failed to fetch goals:", err);
+      setError("Failed to fetch goals");
+      setLoading(false); // Ensure loading is set to false in case of error
     }
   };
 
-  // Fetch all employees
-  const fetchEmployees = async () => {
+  // Fetch team employees for selected project
+  const fetchTeamEmployees = async (projectId) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
+      const goalResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${projectId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      const employeeUsers = response.data.filter((user) => user.role === "employee");
-      setEmployees(employeeUsers);
+      
+
+      const teamId = goalResponse.data?.teamId._id;
+      
+      if (!teamId) {
+        console.error("No team associated with this project.");
+        setTeamEmployees([]);
+        return;
+      }
+  
+      const teamResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setTeamEmployees(teamResponse.data.members);
     } catch (err) {
-      console.error("Failed to fetch employees:", err);
+      console.error("Failed to fetch team employees:", err);
+      setTeamEmployees([]);
     }
   };
+  
 
   // Save or update a task
   const handleSaveTask = async () => {
@@ -170,174 +194,175 @@ const TaskManagement = () => {
     setOpen(false);
     setIsUpdate(false);
     setSelectedTask(null);
+    setTeamEmployees([]); // Reset team employees as well
   };
 
-   // Function to get styles for status cell
-   const getStatusStyle = (status) => {
-     switch (status) {
-       case "scheduled":
-         return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" }; // Light gray
-       case "in-progress":
-         return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" }; // Light blue
-       case "completed":
-         return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" }; // Light green
-       default:
-         return {};
-     }
-   };
+  // Function to get styles for status cell
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "scheduled":
+        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "4px" }; // Light gray
+      case "in-progress":
+        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "4px" }; // Light blue
+      case "completed":
+        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "4px" }; // Light green
+      default:
+        return {};
+    }
+  };
 
-   if (loading) return <Typography variant="h6">Loading tasks...</Typography>;
-   if (error) return <Typography variant="h6">{error}</Typography>;
+  if (loading) return <Typography variant="h6">Loading tasks...</Typography>;
+  if (error) return <Typography variant="h6">{error}</Typography>;
 
-   return (
-     <ManagerLayout>
-       <Typography variant="h3" gutterBottom sx={{ textAlign: "center", color: "#15B2C0" }}>
-         Task Management
-       </Typography>
+  return (
+    <ManagerLayout>
+      <Typography variant="h3" gutterBottom sx={{ textAlign: "center", color: "#15B2C0" }}>
+        Task Management
+      </Typography>
 
-       {/* Create or Update Task Button */}
-       <Button variant="contained" color="primary" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
-         {isUpdate ? "Update Task" : "Create Task"}
-       </Button>
+      {/* Create or Update Task Button */}
+      <Button variant="contained" color="primary" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
+        {isUpdate ? "Update Task" : "Create Task"}
+      </Button>
 
-       {/* Tasks Table */}
-       <TableContainer component={Paper}>
-         <Table>
-           <TableHead>
-             <TableRow>
-               <TableCell><strong>Task Title</strong></TableCell>
-               <TableCell><strong>Project</strong></TableCell>
-               <TableCell><strong>Start Date</strong></TableCell>
-               <TableCell><strong>Due Date</strong></TableCell>
-               <TableCell><strong>Status</strong></TableCell>
-               <TableCell><strong>Priority</strong></TableCell>
-               <TableCell><strong>Employee</strong></TableCell>
-               <TableCell><strong>Actions</strong></TableCell>
-             </TableRow>
-           </TableHead>
-           <TableBody>
-             {tasks.map((task) => (
-               <TableRow key={task._id}>
-                 <TableCell>{task.taskTitle}</TableCell>
-                 <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
-                 <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                 <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+      {/* Tasks Table */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Task Title</strong></TableCell>
+              <TableCell><strong>Project</strong></TableCell>
+              <TableCell><strong>Start Date</strong></TableCell>
+              <TableCell><strong>Due Date</strong></TableCell>
+              <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Priority</strong></TableCell>
+              <TableCell><strong>Employee</strong></TableCell>
+              <TableCell><strong>Actions</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {tasks.map((task) => (
+              <TableRow key={task._id}>
+                <TableCell>{task.taskTitle}</TableCell>
+                <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
+                <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
 
-                 {/* Status Cell with Conditional Styling */}
-                 <TableCell>
-                   <span style={getStatusStyle(task.status)}>{task.status}</span>
-                 </TableCell>
+                {/* Status Cell with Conditional Styling */}
+                <TableCell>
+                  <span style={getStatusStyle(task.status)}>{task.status}</span>
+                </TableCell>
 
-                 <TableCell>{task.priority}</TableCell>
-                 <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
-                 <TableCell>
-                   <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                     {/* Edit Button */}
-                     <Button variant="outlined" color="primary" onClick={() => handleUpdateTask(task)}>
-                       <EditIcon />
-                     </Button>
+                <TableCell>{task.priority}</TableCell>
+                <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
+                <TableCell>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                    {/* Edit Button */}
+                    <Button variant="outlined" color="primary" onClick={() => handleUpdateTask(task)}>
+                      <EditIcon />
+                    </Button>
 
-                     {/* Delete Button */}
-                     <Button variant="outlined" color="error" onClick={() => handleDeleteTask(task._id)}>
-                       <DeleteIcon />
-                     </Button>
-                   </Box>
-                 </TableCell>
-               </TableRow>
-             ))}
-           </TableBody>
-         </Table>
-       </TableContainer>
+                    {/* Delete Button */}
+                    <Button variant="outlined" color="error" onClick={() => handleDeleteTask(task._id)}>
+                      <DeleteIcon />
+                    </Button>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-       {/* Create or Update Task Dialog */}
-       <Dialog open={open} onClose={resetForm}>
-         <DialogTitle>{isUpdate ? "Update Task" : "Create New Task"}</DialogTitle>
-         <DialogContent>
+      {/* Create or Update Task Dialog */}
+      <Dialog open={open} onClose={resetForm}>
+        <DialogTitle>{isUpdate ? "Update Task" : "Create New Task"}</DialogTitle>
+        <DialogContent>
 
-           {/* Task Title */}
-           <TextField
-             label="Task Title"
-             name="taskTitle"
-             fullWidth
-             value={newTask.taskTitle}
-             onChange={handleInputChange}
-             margin="dense"
-           />
+          {/* Task Title */}
+          <TextField
+            label="Task Title"
+            name="taskTitle"
+            fullWidth
+            value={newTask.taskTitle}
+            onChange={handleInputChange}
+            margin="dense"
+          />
 
-           {/* Project Dropdown */}
-           <FormControl fullWidth margin="dense">
-             <InputLabel>Project</InputLabel>
-             <Select name="projectId" value={newTask.projectId} onChange={handleInputChange}>
-               {goals.map((goal) => (
-                 <MenuItem key={goal._id} value={goal._id}>{goal.projectTitle}</MenuItem>
-               ))}
-             </Select>
-           </FormControl>
+          {/* Project Dropdown */}
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Project</InputLabel>
+            <Select name="projectId" value={newTask.projectId} onChange={handleInputChange}>
+              {goals.map((goal) => (
+                <MenuItem key={goal._id} value={goal._id}>{goal.projectTitle}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-           {/* Start Date */}
-           <TextField
-             label="Start Date"
-             type="date"
-             name="startDate"
-             fullWidth
-             value={newTask.startDate}
-             onChange={handleInputChange}
-             margin="dense"
-           />
+          {/* Start Date */}
+          <TextField
+            label="Start Date"
+            type="date"
+            name="startDate"
+            fullWidth
+            value={newTask.startDate}
+            onChange={handleInputChange}
+            margin="dense"
+          />
 
-           {/* Due Date */}
-           <TextField
-             label="Due Date"
-             type="date"
-             name="dueDate"
-             fullWidth
-             value={newTask.dueDate}
-             onChange={handleInputChange}
-             margin="dense"
-           />
+          {/* Due Date */}
+          <TextField
+            label="Due Date"
+            type="date"
+            name="dueDate"
+            fullWidth
+            value={newTask.dueDate}
+            onChange={handleInputChange}
+            margin="dense"
+          />
 
-           {/* Priority Dropdown */}
-           <FormControl fullWidth margin="dense">
-             <InputLabel>Priority</InputLabel>
-             <Select name="priority" value={newTask.priority} onChange={handleInputChange}>
-               {["low", "medium", "high"].map((priority) => (
-                 <MenuItem key={priority} value={priority}>{priority}</MenuItem>
-               ))}
-             </Select>
-           </FormControl>
+          {/* Priority Dropdown */}
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Priority</InputLabel>
+            <Select name="priority" value={newTask.priority} onChange={handleInputChange}>
+              {["low", "medium", "high"].map((priority) => (
+                <MenuItem key={priority} value={priority}>{priority}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-           {/* Employee Dropdown */}
-           <FormControl fullWidth margin="dense">
-             <InputLabel>Employee</InputLabel>
-             <Select name="employeeId" value={newTask.employeeId} onChange={handleInputChange}>
-               {employees.map((employee) => (
-                 <MenuItem key={employee._id} value={employee._id}>{employee.username}</MenuItem>
-               ))}
-             </Select>
-           </FormControl>
+          {/* Employee Dropdown */}
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Employee</InputLabel>
+            <Select name="employeeId" value={newTask.employeeId} onChange={handleInputChange}>
+              {teamEmployees.map((employee) => (
+                <MenuItem key={employee._id} value={employee._id}>{employee.username}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-           {/* Description */}
-           <TextField
-             label="Description"
-             name="description"
-             fullWidth
-             multiline
-             rows={4}
-             value={newTask.description}
-             onChange={handleInputChange}
-             margin="dense"
-           />
-         </DialogContent>
+          {/* Description */}
+          <TextField
+            label="Description"
+            name="description"
+            fullWidth
+            multiline
+            rows={4}
+            value={newTask.description}
+            onChange={handleInputChange}
+            margin="dense"
+          />
+        </DialogContent>
 
-         {/* Dialog Actions */}
-         <DialogActions>
-           <Button onClick={resetForm} color="primary">Cancel</Button>
-           <Button onClick={handleSaveTask} color="primary">{isUpdate ? "Update" : "Save"}</Button>
-         </DialogActions>
-       </Dialog>
+        {/* Dialog Actions */}
+        <DialogActions>
+          <Button onClick={resetForm} color="primary">Cancel</Button>
+          <Button onClick={handleSaveTask} color="primary">{isUpdate ? "Update" : "Save"}</Button>
+        </DialogActions>
+      </Dialog>
 
-     </ManagerLayout>
-   );
+    </ManagerLayout>
+  );
 };
 
 export default TaskManagement;
