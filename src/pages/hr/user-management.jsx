@@ -24,16 +24,17 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  Box
+  Box,
 } from "@mui/material";
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import HRLayout from "../../components/HRLayout"; // Import the new Layout component
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import HRLayout from "../../components/HRLayout";
 
 const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]); // State to store
+  const [departments, setDepartments] = useState([]); // State to store departments
+  const [teams, setTeams] = useState([]); // State to store teams
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newUser, setNewUser] = useState({
@@ -41,23 +42,25 @@ const UserManagement = () => {
     email: "",
     password: "",
     role: "",
-    employeeDetails: {},
-    managerDetails: {department: "",},
-    hrDetails: {},
+    managerDetails: { department: "", team: [] }, // Only managerDetails is needed for managers
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false); // State for delete confirmation
-  const [userToDelete, setUserToDelete] = useState(null); // State to store the user to delete
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/"); // Redirect non-HR users to the homepage
     } else {
-      fetchUsers();
-      fetchDepartments(); // Fetch departments for dropdown
+      const fetchData = async () => {
+        await fetchDepartments();
+        await fetchTeams();
+        await fetchUsers();
+      };
+      fetchData();
     }
   }, [user, router]);
 
@@ -73,13 +76,44 @@ const UserManagement = () => {
     }
   };
 
+  // Fetch all teams for the dropdown
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setTeams(response.data);
+    } catch (err) {
+      console.error("Failed to fetch teams:", err);
+    }
+  };
+
   // Fetch users function
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      setUsers(response.data);
+
+      // Map team IDs to team names for managers
+      const usersWithTeamNames = response.data.map((user) => {
+        if (user.role === "manager" && user.managerDetails?.team) {
+          const teamNames = user.managerDetails.team.map((teamId) => {
+            const team = teams.find((t) => t._id === teamId);
+            return team ? team.teamName : "N/A";
+          });
+          return {
+            ...user,
+            managerDetails: {
+              ...user.managerDetails,
+              team: teamNames,
+            },
+          };
+        }
+        return user;
+      });
+
+      setUsers(usersWithTeamNames);
       setLoading(false);
     } catch (err) {
       setError("Failed to fetch users");
@@ -111,17 +145,14 @@ const UserManagement = () => {
         email: "",
         password: "",
         role: "",
-        employeeDetails: {},
-        managerDetails: {},
-        hrDetails: {},
+        managerDetails: { department: "", team: [] }, // Reset managerDetails
       });
       setOpen(false); // Close the dialog after successful user creation or update
       setIsUpdate(false); // Reset the update flag
       setSelectedUser(null); // Clear selected user
-
     } catch (err) {
-      setError("Failed to save user");
-      console.error("Error saving user:", err);
+      console.error("Error saving user:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Failed to save user. Please check the input and try again.");
     }
   };
 
@@ -132,9 +163,7 @@ const UserManagement = () => {
       email: user.email,
       password: user.password,
       role: user.role,
-      employeeDetails: user.employeeDetails || {},
-      managerDetails: user.managerDetails || {},
-      hrDetails: user.hrDetails || {},
+      managerDetails: user.managerDetails || { department: "", team: [] }, // Only managerDetails is needed
     });
     setIsUpdate(true);
     setSelectedUser(user);
@@ -181,9 +210,7 @@ const UserManagement = () => {
     setNewUser((prevState) => ({
       ...prevState,
       role: value,
-      employeeDetails: value === "employee" ? {} : prevState.employeeDetails,
-      managerDetails: value === "manager" ? {} : prevState.managerDetails,
-      hrDetails: value === "hr" ? {} : prevState.hrDetails,
+      managerDetails: value === "manager" ? { department: "", team: [] } : {}, // Reset managerDetails if role is not manager
     }));
   };
 
@@ -196,8 +223,8 @@ const UserManagement = () => {
         variant="h3"
         gutterBottom
         sx={{
-          textAlign: 'center', // Centers the text
-          color: '#15B2C0', // Apply the custom color
+          textAlign: "center",
+          color: "#15B2C0",
         }}
       >
         Users List
@@ -214,17 +241,28 @@ const UserManagement = () => {
       </Button>
 
       {/* User Table */}
-      {/* User Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell><strong>User ID</strong></TableCell>
-              <TableCell><strong>Username</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Role</strong></TableCell>
-              <TableCell><strong>Details</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
+              <TableCell>
+                <strong>User ID</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Username</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Email</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Role</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Details</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Actions</strong>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -235,49 +273,33 @@ const UserManagement = () => {
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
-                  {user.role === "employee" && (
-                    <>
-                      {/* <Typography variant="body2">
-                        <strong>Department:</strong> {user.employeeDetails.department || "N/A"}
-                      </Typography> */}
-                      <Typography variant="body2">
-                        <strong>Designation:</strong> {user.employeeDetails.designation || "N/A"}
-                      </Typography>
-                    </>
-                  )}
                   {user.role === "manager" && (
                     <>
                       <Typography variant="body2">
-                        <strong>Department:</strong> {user.managerDetails.department?.departmentName|| "N/A"}
+                        <strong>Department:</strong> {user.managerDetails.department?.departmentName || "N/A"}
                       </Typography>
                       <Typography variant="body2">
                         <strong>Team:</strong> {user.managerDetails.team ? user.managerDetails.team.join(", ") : "N/A"}
                       </Typography>
                     </>
                   )}
-                  {user.role === "hr" && (
-                    <>
-                      
-                    </>
-                  )}
                 </TableCell>
-                <TableCell >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={() => handleUpdateUser(user)}
-                  >
-                   <EditIcon/>
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleOpenDeleteDialog(user)} // Open delete confirmation
-                  >
-                    <DeleteIcon />
-
-                  </Button>
+                <TableCell>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={() => handleUpdateUser(user)}
+                    >
+                      <EditIcon />
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleOpenDeleteDialog(user)}
+                    >
+                      <DeleteIcon />
+                    </Button>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -339,109 +361,56 @@ const UserManagement = () => {
               </FormControl>
             </Grid>
             {/* Role-Specific Details */}
-            {newUser.role === "employee" && (
-              <>
-                <Grid item xs={12}>
-                  {/* <TextField
-                    label="Department"
-                    variant="outlined"
-                    fullWidth
-                    name="employeeDetails.department"
-                    value={newUser.employeeDetails.department || ""}
-                    onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        employeeDetails: {
-                          ...newUser.employeeDetails,
-                          department: e.target.value,
-                        },
-                      })
-                    }
-                  /> */}
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    label="Designation"
-                    variant="outlined"
-                    fullWidth
-                    name="employeeDetails.designation"
-                    value={newUser.employeeDetails.designation || ""}
-                    onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        employeeDetails: {
-                          ...newUser.employeeDetails,
-                          designation: e.target.value,
-                        },
-                      })
-                    }
-                  />
-                </Grid>
-              </>
-            )}
             {newUser.role === "manager" && (
               <>
+                {/* Department Dropdown */}
                 <Grid item xs={12}>
-                <FormControl fullWidth margin="dense">
-               <InputLabel>Department</InputLabel>
-               <Select
-                 name="managerDetails.department"
-                 value={newUser.managerDetails.department}
-                 onChange={(e) =>
-                   setNewUser((prevState) => ({
-                     ...prevState,
-                     managerDetails: { ...prevState.managerDetails, department: e.target.value },
-                   }))
-                 }
-               >
-                 {departments.map((dept) => (
-                   <MenuItem key={dept._id} value={dept._id}>
-                     {dept.departmentName}
-                   </MenuItem>
-                 ))}
-               </Select>
-             </FormControl>
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel>Department</InputLabel>
+                    <Select
+                      name="managerDetails.department"
+                      value={newUser.managerDetails.department}
+                      onChange={(e) =>
+                        setNewUser((prevState) => ({
+                          ...prevState,
+                          managerDetails: { ...prevState.managerDetails, department: e.target.value },
+                        }))
+                      }
+                    >
+                      {departments.map((dept) => (
+                        <MenuItem key={dept._id} value={dept._id}>
+                          {dept.departmentName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
+
+                {/* Teams Dropdown */}
                 <Grid item xs={12}>
-                  <TextField
-                    label="Team Members (Usernames)"
-                    variant="outlined"
-                    fullWidth
-                    name="managerDetails.team"
-                    value={newUser.managerDetails.team ? newUser.managerDetails.team.join(", ") : ""}
-                    onChange={(e) =>
-                      setNewUser({
-                        ...newUser,
-                        managerDetails: {
-                          ...newUser.managerDetails,
-                          team: e.target.value.split(",").map((username) => username.trim()),
-                        },
-                      })
-                    }
-                  />
+                  <FormControl fullWidth margin="dense">
+                    <InputLabel>Teams</InputLabel>
+                    <Select
+                      name="managerDetails.team"
+                      multiple
+                      value={newUser.managerDetails.team || []}
+                      onChange={(e) =>
+                        setNewUser((prevState) => ({
+                          ...prevState,
+                          managerDetails: { ...prevState.managerDetails, team: e.target.value },
+                        }))
+                      }
+                      renderValue={(selected) => selected.join(", ")}
+                    >
+                      {teams.map((team) => (
+                        <MenuItem key={team._id} value={team._id}>
+                          {team.teamName}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
               </>
-            )}
-
-            {newUser.role === "hr" && (
-              <Grid item xs={12}>
-                {/* <TextField
-                  label="Assigned Departments"
-                  variant="outlined"
-                  fullWidth
-                  name="hrDetails.assignedDepartments"
-                  value={newUser.hrDetails.assignedDepartments || ""}
-                  onChange={(e) =>
-                    setNewUser({
-                      ...newUser,
-                      hrDetails: {
-                        ...newUser.hrDetails,
-                        assignedDepartments: e.target.value.split(","),
-                      },
-                    })
-                  }
-                /> */}
-              </Grid>
             )}
           </Grid>
         </DialogContent>
