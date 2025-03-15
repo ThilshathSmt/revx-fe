@@ -44,7 +44,6 @@ const GoalManagement = () => {
     dueDate: "",
     status: "scheduled",
     teamId: "",
-    departmentId: "",
     description: ""
   });
   const [open, setOpen] = useState(false);
@@ -60,7 +59,6 @@ const GoalManagement = () => {
     } else {
       fetchGoals();
       fetchManagedTeams();
-      fetchDepartments();
     }
   }, [user, router]);
 
@@ -85,17 +83,6 @@ const GoalManagement = () => {
       setTeams(response.data);
     } catch (err) {
       console.error("Failed to fetch teams:", err);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setDepartments(response.data);
-    } catch (err) {
-      console.error("Failed to fetch departments:", err);
     }
   };
 
@@ -125,7 +112,6 @@ const GoalManagement = () => {
       dueDate: goal.dueDate.split("T")[0],
       status: goal.status,
       teamId: goal.teamId?._id || "",
-      departmentId: goal.departmentId?._id || "",
       description: goal.description || ""
     });
     setIsUpdate(true);
@@ -157,7 +143,6 @@ const GoalManagement = () => {
       dueDate: "",
       status: "scheduled",
       teamId: "",
-      departmentId: "",
       description: ""
     });
     setOpen(false);
@@ -200,7 +185,6 @@ const GoalManagement = () => {
               <TableCell><strong>Due Date</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
               <TableCell><strong>Team</strong></TableCell>
-              <TableCell><strong>Department</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
@@ -216,7 +200,6 @@ const GoalManagement = () => {
                   </span>
                 </TableCell>
                 <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
-                <TableCell>{goal.departmentId?.departmentName || "N/A"}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button variant="outlined" onClick={() => handleUpdateGoal(goal)}>
@@ -274,21 +257,7 @@ const GoalManagement = () => {
               />
             </Grid>
 
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="status"
-                  value={newGoal.status}
-                  onChange={handleInputChange}
-                  label="Status"
-                >
-                  <MenuItem value="scheduled">Scheduled</MenuItem>
-                  <MenuItem value="in-progress">In Progress</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+            
 
             <Grid item xs={6}>
               <FormControl fullWidth>
@@ -302,24 +271,6 @@ const GoalManagement = () => {
                   {teams.map((team) => (
                     <MenuItem key={team._id} value={team._id}>
                       {team.teamName}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={6}>
-              <FormControl fullWidth>
-                <InputLabel>Department</InputLabel>
-                <Select
-                  name="departmentId"
-                  value={newGoal.departmentId}
-                  onChange={handleInputChange}
-                  label="Department"
-                >
-                  {departments.map((dept) => (
-                    <MenuItem key={dept._id} value={dept._id}>
-                      {dept.departmentName}
                     </MenuItem>
                   ))}
                 </Select>
