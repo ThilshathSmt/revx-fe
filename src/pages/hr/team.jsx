@@ -32,11 +32,13 @@ const TeamManagement = () => {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newTeam, setNewTeam] = useState({
     teamName: "",
-    members: []
+    members: [],
+    departmentId: ""
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -49,6 +51,7 @@ const TeamManagement = () => {
     } else {
       fetchTeams();
       fetchEmployees();
+      fetchDepartments();
     }
   }, [user, router]);
 
@@ -74,6 +77,17 @@ const TeamManagement = () => {
       setEmployees(employees);
     } catch (err) {
       console.error("Failed to fetch employees:", err);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setDepartments(response.data);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
     }
   };
 
@@ -107,7 +121,8 @@ const TeamManagement = () => {
   const handleUpdateTeam = (team) => {
     setNewTeam({
       teamName: team.teamName,
-      members: team.members.map(m => m._id)
+      members: team.members.map(m => m._id),
+      departmentId: team.departmentId?._id || ""
     });
     setIsUpdate(true);
     setSelectedTeam(team);
@@ -136,7 +151,8 @@ const TeamManagement = () => {
   const resetForm = () => {
     setNewTeam({
       teamName: "",
-      members: []
+      members: [],
+      departmentId: ""
     });
     setOpen(false);
     setIsUpdate(false);
@@ -161,6 +177,7 @@ const TeamManagement = () => {
           <TableHead>
             <TableRow>
               <TableCell><strong>Team Name</strong></TableCell>
+              <TableCell><strong>Department</strong></TableCell>
               <TableCell><strong>Members</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
@@ -169,6 +186,7 @@ const TeamManagement = () => {
             {teams.map((team) => (
               <TableRow key={team._id}>
                 <TableCell>{team.teamName}</TableCell>
+                <TableCell>{team.departmentId?.departmentName || "N/A"}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     {team.members.map(member => (
@@ -212,6 +230,22 @@ const TeamManagement = () => {
             required
           />
           
+          {/* Department Dropdown */}
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Department</InputLabel>
+            <Select
+              value={newTeam.departmentId}
+              onChange={(e) => setNewTeam({...newTeam, departmentId: e.target.value})}
+              label="Department"
+            >
+              {departments.map((department) => (
+                <MenuItem key={department._id} value={department._id}>
+                  {department.departmentName}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <FormControl fullWidth margin="normal">
             <InputLabel>Team Members</InputLabel>
             <Select
