@@ -22,7 +22,8 @@ import {
   Select,
   MenuItem,
   Chip,
-  Box
+  Box,
+  Pagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -43,6 +44,8 @@ const TeamManagement = () => {
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [teamsPerPage] = useState(7);
   const router = useRouter();
 
   useEffect(() => {
@@ -54,6 +57,15 @@ const TeamManagement = () => {
       fetchDepartments();
     }
   }, [user, router]);
+
+  
+  const indexOfLastTeam = currentPage * teamsPerPage;
+  const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
+  const currentTeams = teams.slice(indexOfFirstTeam, indexOfLastTeam);
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+  };
 
   const fetchTeams = async () => {
     try {
@@ -183,7 +195,7 @@ const TeamManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {teams.map((team) => (
+            {currentTeams.map((team) => (
               <TableRow key={team._id}>
                 <TableCell>{team.teamName}</TableCell>
                 <TableCell>{team.departmentId?.departmentName || "N/A"}</TableCell>
@@ -218,6 +230,15 @@ const TeamManagement = () => {
         </Table>
       </TableContainer>
 
+      {/* Pagination */}
+      <Pagination
+        count={Math.ceil(teams.length / teamsPerPage)}
+        page={currentPage}
+        onChange={handlePageChange}
+        color="primary"
+        sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
+      />
+
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
         <DialogContent>
@@ -230,7 +251,6 @@ const TeamManagement = () => {
             required
           />
           
-          {/* Department Dropdown */}
           <FormControl fullWidth margin="normal">
             <InputLabel>Department</InputLabel>
             <Select
