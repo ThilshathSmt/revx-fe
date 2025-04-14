@@ -33,8 +33,8 @@ import HRLayout from "../../components/HRLayout";
 const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]); // State to store departments
-  const [teams, setTeams] = useState([]); // State to store teams
+  const [departments, setDepartments] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newUser, setNewUser] = useState({
@@ -42,7 +42,8 @@ const UserManagement = () => {
     email: "",
     password: "",
     role: "",
-    managerDetails: { department: "", team: [] }, // Only managerDetails is needed for managers
+    managerDetails: { department: "", team: [] },
+    employeeDetails: { department: "" }
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -53,7 +54,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     if (!user || user.role !== "hr") {
-      router.push("/"); // Redirect non-HR users to the homepage
+      router.push("/");
     } else {
       const fetchData = async () => {
         await fetchDepartments();
@@ -64,7 +65,6 @@ const UserManagement = () => {
     }
   }, [user, router]);
 
-  // Fetch all departments for the dropdown
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -76,7 +76,6 @@ const UserManagement = () => {
     }
   };
 
-  // Fetch all teams for the dropdown
   const fetchTeams = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`, {
@@ -88,15 +87,14 @@ const UserManagement = () => {
     }
   };
 
-  // Fetch users function
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
-      // Map team IDs to team names for managers
-      const usersWithTeamNames = response.data.map((user) => {
+      const usersWithDetails = response.data.map((user) => {
+        // For managers
         if (user.role === "manager" && user.managerDetails?.team) {
           const teamNames = user.managerDetails.team.map((teamId) => {
             const team = teams.find((t) => t._id === teamId);
@@ -110,10 +108,21 @@ const UserManagement = () => {
             },
           };
         }
+        // For employees
+        if (user.role === "employee" && user.employeeDetails?.department) {
+          const department = departments.find(d => d._id === user.employeeDetails.department);
+          return {
+            ...user,
+            employeeDetails: {
+              ...user.employeeDetails,
+              departmentName: department ? department.departmentName : "N/A"
+            }
+          };
+        }
         return user;
       });
 
-      setUsers(usersWithTeamNames);
+      setUsers(usersWithDetails);
       setLoading(false);
     } catch (err) {
       setError("Failed to fetch users");
@@ -121,7 +130,6 @@ const UserManagement = () => {
     }
   };
 
-  // Handle creating or updating a user
   const handleSaveUser = async () => {
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${selectedUser._id}`
@@ -129,54 +137,70 @@ const UserManagement = () => {
     const method = isUpdate ? "put" : "post";
 
     try {
+      // Prepare the user data based on role
+      const userData = {
+        username: newUser.username,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+      };
+
+      // Add role-specific details
+      if (newUser.role === "manager") {
+        userData.managerDetails = {
+          department: newUser.managerDetails.department,
+          team: newUser.managerDetails.team
+        };
+      } else if (newUser.role === "employee") {
+        userData.employeeDetails = {
+          department: newUser.employeeDetails.department
+        };
+      }
+
       const response = await axios({
         method,
         url,
-        data: newUser,
+        data: userData,
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
-      // After save, re-fetch the users list
       fetchUsers();
-
-      // Reset the form and dialog
       setNewUser({
         username: "",
         email: "",
         password: "",
         role: "",
-        managerDetails: { department: "", team: [] }, // Reset managerDetails
+        managerDetails: { department: "", team: [] },
+        employeeDetails: { department: "" }
       });
-      setOpen(false); // Close the dialog after successful user creation or update
-      setIsUpdate(false); // Reset the update flag
-      setSelectedUser(null); // Clear selected user
+      setOpen(false);
+      setIsUpdate(false);
+      setSelectedUser(null);
     } catch (err) {
       console.error("Error saving user:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Failed to save user. Please check the input and try again.");
     }
   };
 
-  // Handle opening the update dialog
   const handleUpdateUser = (user) => {
     setNewUser({
       username: user.username,
       email: user.email,
-      password: user.password,
+      password: "", // Don't pre-fill password for security
       role: user.role,
-      managerDetails: user.managerDetails || { department: "", team: [] }, // Only managerDetails is needed
+      managerDetails: user.managerDetails || { department: "", team: [] },
+      employeeDetails: user.employeeDetails || { department: "" }
     });
     setIsUpdate(true);
     setSelectedUser(user);
     setOpen(true);
   };
 
-  // Handle opening the delete confirmation dialog
   const handleOpenDeleteDialog = (user) => {
     setUserToDelete(user);
     setOpenDeleteDialog(true);
   };
 
-  // Handle deleting a user
   const handleDeleteUser = async () => {
     try {
       if (!userToDelete) return;
@@ -185,17 +209,15 @@ const UserManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
-      // Remove the deleted user from the state
       const updatedUsers = users.filter((usr) => usr._id !== userToDelete._id);
       setUsers(updatedUsers);
-      setOpenDeleteDialog(false); // Close the delete confirmation dialog
+      setOpenDeleteDialog(false);
     } catch (err) {
       setError("Failed to delete user");
-      setOpenDeleteDialog(false); // Close the dialog even if deletion fails
+      setOpenDeleteDialog(false);
     }
   };
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewUser((prevState) => ({
@@ -204,13 +226,13 @@ const UserManagement = () => {
     }));
   };
 
-  // Handle dynamic role-specific details
   const handleRoleChange = (e) => {
     const { value } = e.target;
     setNewUser((prevState) => ({
       ...prevState,
       role: value,
-      managerDetails: value === "manager" ? { department: "", team: [] } : {}, // Reset managerDetails if role is not manager
+      managerDetails: value === "manager" ? { department: "", team: [] } : {},
+      employeeDetails: value === "employee" ? { department: "" } : {}
     }));
   };
 
@@ -230,7 +252,6 @@ const UserManagement = () => {
         Users List
       </Typography>
 
-      {/* Create or Update User Button */}
       <Button
         variant="contained"
         color="primary"
@@ -240,29 +261,16 @@ const UserManagement = () => {
         {isUpdate ? "Update User" : "Create User"}
       </Button>
 
-      {/* User Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>
-                <strong>User ID</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Username</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Email</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Role</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Details</strong>
-              </TableCell>
-              <TableCell>
-                <strong>Actions</strong>
-              </TableCell>
+              <TableCell><strong>User ID</strong></TableCell>
+              <TableCell><strong>Username</strong></TableCell>
+              <TableCell><strong>Email</strong></TableCell>
+              <TableCell><strong>Role</strong></TableCell>
+              <TableCell><strong>Details</strong></TableCell>
+              <TableCell><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -282,6 +290,11 @@ const UserManagement = () => {
                         <strong>Team:</strong> {user.managerDetails.team ? user.managerDetails.team.join(", ") : "N/A"}
                       </Typography>
                     </>
+                  )}
+                  {user.role === "employee" && (
+                    <Typography variant="body2">
+                      <strong>Department:</strong> {user.employeeDetails?.departmentName || "N/A"}
+                    </Typography>
                   )}
                 </TableCell>
                 <TableCell>
@@ -308,7 +321,6 @@ const UserManagement = () => {
         </Table>
       </TableContainer>
 
-      {/* Create or Update User Dialog */}
       <Dialog open={open} onClose={() => setOpen(false)}>
         <DialogTitle>{isUpdate ? "Update User" : "Create New User"}</DialogTitle>
         <DialogContent>
@@ -360,10 +372,10 @@ const UserManagement = () => {
                 <FormHelperText>Select user role</FormHelperText>
               </FormControl>
             </Grid>
-            {/* Role-Specific Details */}
+
+            {/* Manager-specific fields */}
             {newUser.role === "manager" && (
               <>
-                {/* Department Dropdown */}
                 <Grid item xs={12}>
                   <FormControl fullWidth margin="dense">
                     <InputLabel>Department</InputLabel>
@@ -386,7 +398,6 @@ const UserManagement = () => {
                   </FormControl>
                 </Grid>
 
-                {/* Teams Dropdown */}
                 <Grid item xs={12}>
                   <FormControl fullWidth margin="dense">
                     <InputLabel>Teams</InputLabel>
@@ -400,7 +411,10 @@ const UserManagement = () => {
                           managerDetails: { ...prevState.managerDetails, team: e.target.value },
                         }))
                       }
-                      renderValue={(selected) => selected.join(", ")}
+                      renderValue={(selected) => {
+                        const selectedTeams = teams.filter(t => selected.includes(t._id));
+                        return selectedTeams.map(t => t.teamName).join(", ");
+                      }}
                     >
                       {teams.map((team) => (
                         <MenuItem key={team._id} value={team._id}>
@@ -411,6 +425,31 @@ const UserManagement = () => {
                   </FormControl>
                 </Grid>
               </>
+            )}
+
+            {/* Employee-specific fields */}
+            {newUser.role === "employee" && (
+              <Grid item xs={12}>
+                <FormControl fullWidth margin="dense">
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    name="employeeDetails.department"
+                    value={newUser.employeeDetails.department}
+                    onChange={(e) =>
+                      setNewUser((prevState) => ({
+                        ...prevState,
+                        employeeDetails: { ...prevState.employeeDetails, department: e.target.value },
+                      }))
+                    }
+                  >
+                    {departments.map((dept) => (
+                      <MenuItem key={dept._id} value={dept._id}>
+                        {dept.departmentName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             )}
           </Grid>
         </DialogContent>
@@ -424,7 +463,6 @@ const UserManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
