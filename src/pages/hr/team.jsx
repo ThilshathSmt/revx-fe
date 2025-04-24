@@ -23,11 +23,15 @@ import {
   MenuItem,
   Chip,
   Box,
-  Pagination
+  Pagination,
+  Grid,
+  Card, CardContent, CardActions
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HRLayout from "../../components/HRLayout";
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
+import ApartmentIcon from '@mui/icons-material/Apartment';
 
 const TeamManagement = () => {
   const { user } = useAuth();
@@ -45,7 +49,7 @@ const TeamManagement = () => {
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [teamsPerPage] = useState(7);
+  const [teamsPerPage] = useState(9);
   const router = useRouter();
 
   useEffect(() => {
@@ -58,7 +62,7 @@ const TeamManagement = () => {
     }
   }, [user, router]);
 
-  
+
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
   const currentTeams = teams.slice(indexOfFirstTeam, indexOfLastTeam);
@@ -184,51 +188,64 @@ const TeamManagement = () => {
         {isUpdate ? "Update Team" : "Create New Team"}
       </Button>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>Team Name</strong></TableCell>
-              <TableCell><strong>Department</strong></TableCell>
-              <TableCell><strong>Members</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {currentTeams.map((team) => (
-              <TableRow key={team._id}>
-                <TableCell>{team.teamName}</TableCell>
-                <TableCell>{team.departmentId?.departmentName || "N/A"}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    {team.members.map(member => (
-                      <Chip 
-                        key={member._id} 
-                        label={member.username} 
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button variant="outlined" onClick={() => handleUpdateTeam(team)}>
-                      <EditIcon />
-                    </Button>
-                    <Button 
-                      variant="outlined" 
-                      color="error" 
-                      onClick={() => handleDeleteTeam(team._id)}
-                    >
-                      <DeleteIcon />
-                    </Button>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {/* Team Cards View */}
+      <Grid container spacing={3}>
+        {currentTeams.map((team) => (
+          <Grid item xs={12} sm={6} md={4} key={team._id}>
+            <Card
+              sx={{
+                minHeight: 220,
+                borderRadius: 3,
+                boxShadow: 3,
+                transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                "&:hover": {
+                  transform: "scale(1.03)",
+                  boxShadow: 6,
+                  cursor: "pointer",
+                  backgroundColor:"#E8F9FF"
+                },
+              }}
+            >
+
+              <CardContent>
+                <Typography variant="h6" gutterBottom>{team.teamName}</Typography>
+                <Typography variant="body2" color="textSecondary" textAlign={"center"} gutterBottom>
+                  <ApartmentIcon sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                  Department: {team.departmentId?.departmentName || "N/A"}
+                </Typography>
+                <br />
+                
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                <PeopleAltIcon /> 
+                  {team.members.map((member) => (
+                    <Chip key={member._id} label={member.username} variant="outlined" />
+                  ))}
+                </Box>
+              </CardContent>
+              <CardActions sx={{ justifyContent: "flex-end", px: 2 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleUpdateTeam(team)}
+                  startIcon={<EditIcon />}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={() => handleDeleteTeam(team._id)}
+                  startIcon={<DeleteIcon />}
+                >
+                  Delete
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
 
       {/* Pagination */}
       <Pagination
@@ -246,16 +263,16 @@ const TeamManagement = () => {
             label="Team Name"
             fullWidth
             value={newTeam.teamName}
-            onChange={(e) => setNewTeam({...newTeam, teamName: e.target.value})}
+            onChange={(e) => setNewTeam({ ...newTeam, teamName: e.target.value })}
             margin="normal"
             required
           />
-          
+
           <FormControl fullWidth margin="normal">
             <InputLabel>Department</InputLabel>
             <Select
               value={newTeam.departmentId}
-              onChange={(e) => setNewTeam({...newTeam, departmentId: e.target.value})}
+              onChange={(e) => setNewTeam({ ...newTeam, departmentId: e.target.value })}
               label="Department"
             >
               {departments.map((department) => (
