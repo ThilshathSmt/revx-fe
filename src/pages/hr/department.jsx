@@ -17,7 +17,8 @@ import {
   DialogTitle,
   Button,
   TextField,
-  Box
+  Box,
+  Pagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -32,10 +33,15 @@ const DepartmentManagement = () => {
     departmentName: "",
     description: "",
   });
-  const [formErrors, setFormErrors] = useState({}); // State for validation errors
+  const [formErrors, setFormErrors] = useState({});
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [departmentsPerPage] = useState(7); // Show 7 departments per page
+
   const router = useRouter();
 
   useEffect(() => {
@@ -59,6 +65,15 @@ const DepartmentManagement = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastDepartment = currentPage * departmentsPerPage;
+  const indexOfFirstDepartment = indexOfLastDepartment - departmentsPerPage;
+  const currentDepartments = departments.slice(indexOfFirstDepartment, indexOfLastDepartment);
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+  };
+
   // Validate form fields
   const validateForm = () => {
     let errors = {};
@@ -73,7 +88,7 @@ const DepartmentManagement = () => {
   };
 
   const handleSaveDepartment = async () => {
-    if (!validateForm()) return; // Prevent submission if validation fails
+    if (!validateForm()) return;
 
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${selectedDepartment._id}`
@@ -118,8 +133,6 @@ const DepartmentManagement = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewDepartment({ ...newDepartment, [name]: value });
-
-    // Clear validation errors when user starts typing
     setFormErrors({ ...formErrors, [name]: "" });
   };
 
@@ -157,7 +170,7 @@ const DepartmentManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {departments.map((department) => (
+            {currentDepartments.map((department) => (
               <TableRow key={department._id}>
                 <TableCell>{department.departmentName}</TableCell>
                 <TableCell>{department.description}</TableCell>
@@ -177,6 +190,15 @@ const DepartmentManagement = () => {
         </Table>
       </TableContainer>
 
+      {/* Pagination */}
+      <Pagination
+        count={Math.ceil(departments.length / departmentsPerPage)}
+        page={currentPage}
+        onChange={handlePageChange}
+        color="primary"
+        sx={{ display: "flex", justifyContent: "center", mt: 3 }}
+      />
+
       <Dialog open={open} onClose={resetForm}>
         <DialogTitle>{isUpdate ? "Update Department" : "Create New Department"}</DialogTitle>
         <DialogContent>
@@ -187,10 +209,9 @@ const DepartmentManagement = () => {
             value={newDepartment.departmentName}
             onChange={handleInputChange}
             margin="dense"
-            error={!!formErrors.departmentName} // Show red border if error exists
-            helperText={formErrors.departmentName} // Show error message
+            error={!!formErrors.departmentName}
+            helperText={formErrors.departmentName}
           />
-
           <TextField
             label="Description"
             name="description"
@@ -204,7 +225,6 @@ const DepartmentManagement = () => {
             helperText={formErrors.description}
           />
         </DialogContent>
-
         <DialogActions>
           <Button onClick={resetForm} color="primary">Cancel</Button>
           <Button onClick={handleSaveDepartment} color="primary">
