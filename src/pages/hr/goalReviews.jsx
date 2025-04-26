@@ -123,20 +123,33 @@ const fetchManagers = async () => {
   // Fetch teams for selected manager
   const fetchManagerTeams = async (managerId) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-  
-      // Find the selected manager
-      const manager = response.data.find(user => user._id === managerId && user.role === "manager");
-  
-      if (manager?.teams && Array.isArray(manager.teams)) {
-        setTeams(manager.teams); // assuming manager.teams is an array of team objects
-      } else if (manager?.teamId) {
-        setTeams([manager.teamId]); // if it's a single team object or ID
-      } else {
-        setTeams([]); // no teams assigned
+      // 1. Get manager's department
+      const managerRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${managerId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      const managerDepartment = managerRes.data.managerDetails?.department;
+      if (!managerDepartment) {
+        setTeams([]);
+        return;
       }
+  
+      // 2. Get teams with matching department and manager
+      const teamsRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`,
+        {
+          params: {
+            departmentId: managerDepartment
+          },
+          headers: { Authorization: `Bearer ${user.token}` }
+        }
+      );  
+      setTeams(teamsRes.data);
+      setNewReview(prev => ({
+        ...prev,
+        teamId: "",
+        goalId: ""
+      }));
     } catch (err) {
       console.error("Failed to fetch manager teams:", err);
       setTeams([]);
@@ -145,11 +158,12 @@ const fetchManagers = async () => {
   
   
   
+  
 
   // Fetch goals for selected team
   const fetchTeamGoals = async (teamId) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals${teamId}`, {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/team/${teamId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setGoals(response.data);
