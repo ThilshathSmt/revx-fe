@@ -37,6 +37,7 @@ const TeamManagement = () => {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,6 +63,18 @@ const TeamManagement = () => {
     }
   }, [user, router]);
 
+  // Filter employees when department changes
+  useEffect(() => {
+    if (newTeam.departmentId && employees.length > 0) {
+      const filtered = employees.filter(emp => 
+        emp.employeeDetails?.department?._id === newTeam.departmentId || 
+        emp.employeeDetails?.department === newTeam.departmentId
+      );
+      setFilteredEmployees(filtered);
+    } else {
+      setFilteredEmployees(employees);
+    }
+  }, [newTeam.departmentId, employees]);
 
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
@@ -91,6 +104,7 @@ const TeamManagement = () => {
       });
       const employees = response.data.filter(u => u.role === 'employee');
       setEmployees(employees);
+      setFilteredEmployees(employees); // Initialize filtered employees with all employees
     } catch (err) {
       console.error("Failed to fetch employees:", err);
     }
@@ -164,6 +178,15 @@ const TeamManagement = () => {
     });
   };
 
+  const handleDepartmentChange = (e) => {
+    const departmentId = e.target.value;
+    setNewTeam({
+      ...newTeam,
+      departmentId,
+      members: [] // Clear members when department changes
+    });
+  };
+
   const resetForm = () => {
     setNewTeam({
       teamName: "",
@@ -173,6 +196,7 @@ const TeamManagement = () => {
     setOpen(false);
     setIsUpdate(false);
     setSelectedTeam(null);
+    setFilteredEmployees(employees); // Reset filtered employees
   };
 
   if (loading) return <Typography>Loading teams...</Typography>;
@@ -206,7 +230,6 @@ const TeamManagement = () => {
                 },
               }}
             >
-
               <CardContent>
                 <Typography variant="h6" gutterBottom>{team.teamName}</Typography>
                 <Typography variant="body2" color="textSecondary" textAlign={"center"} gutterBottom>
@@ -246,7 +269,6 @@ const TeamManagement = () => {
         ))}
       </Grid>
 
-
       {/* Pagination */}
       <Pagination
         count={Math.ceil(teams.length / teamsPerPage)}
@@ -272,7 +294,7 @@ const TeamManagement = () => {
             <InputLabel>Department</InputLabel>
             <Select
               value={newTeam.departmentId}
-              onChange={(e) => setNewTeam({ ...newTeam, departmentId: e.target.value })}
+              onChange={handleDepartmentChange}
               label="Department"
             >
               {departments.map((department) => (
@@ -298,7 +320,7 @@ const TeamManagement = () => {
                 </Box>
               )}
             >
-              {employees.map((employee) => (
+              {filteredEmployees.map((employee) => (
                 <MenuItem key={employee._id} value={employee._id}>
                   {employee.username} ({employee.email})
                 </MenuItem>
