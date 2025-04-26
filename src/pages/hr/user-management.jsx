@@ -25,6 +25,8 @@ import {
   MenuItem,
   FormHelperText,
   Box,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -37,13 +39,14 @@ const UserManagement = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [newUser, setNewUser] = useState({
     username: "",
     email: "",
     password: "",
     role: "",
     managerDetails: { department: "", team: [] },
-    employeeDetails: { department: "" }
+    employeeDetails: { department: "" },
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -115,8 +118,8 @@ const UserManagement = () => {
             ...user,
             employeeDetails: {
               ...user.employeeDetails,
-              departmentName: department ? department.departmentName : "N/A"
-            }
+              departmentName: department ? department.departmentName : "N/A",
+            },
           };
         }
         return user;
@@ -141,19 +144,25 @@ const UserManagement = () => {
       const userData = {
         username: newUser.username,
         email: newUser.email,
-        password: newUser.password,
         role: newUser.role,
       };
+
+      // Only include password if it's provided (for updates) or for new users
+      if (newUser.password) {
+        userData.password = newUser.password;
+      }
 
       // Add role-specific details
       if (newUser.role === "manager") {
         userData.managerDetails = {
           department: newUser.managerDetails.department,
-          team: newUser.managerDetails.team
+          team: Array.isArray(newUser.managerDetails.team) 
+            ? newUser.managerDetails.team 
+            : [newUser.managerDetails.team],
         };
       } else if (newUser.role === "employee") {
         userData.employeeDetails = {
-          department: newUser.employeeDetails.department
+          department: newUser.employeeDetails.department,
         };
       }
 
@@ -164,6 +173,7 @@ const UserManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
+      setSuccessMessage(isUpdate ? "User updated successfully!" : "User created successfully!");
       fetchUsers();
       setNewUser({
         username: "",
@@ -171,28 +181,39 @@ const UserManagement = () => {
         password: "",
         role: "",
         managerDetails: { department: "", team: [] },
-        employeeDetails: { department: "" }
+        employeeDetails: { department: "" },
       });
       setOpen(false);
       setIsUpdate(false);
       setSelectedUser(null);
     } catch (err) {
       console.error("Error saving user:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Failed to save user. Please check the input and try again.");
+      setError(err.response?.data?.message || 
+        err.response?.data?.error || 
+        "Failed to save user. Please check the input and try again.");
     }
   };
 
-  const handleUpdateUser = (user) => {
+  const handleUpdateUser = (userToUpdate) => {
     setNewUser({
-      username: user.username,
-      email: user.email,
-      password: "", // Don't pre-fill password for security
-      role: user.role,
-      managerDetails: user.managerDetails || { department: "", team: [] },
-      employeeDetails: user.employeeDetails || { department: "" }
+      username: userToUpdate.username,
+      email: userToUpdate.email,
+      password: "", // Never pre-fill password for security
+      role: userToUpdate.role,
+      managerDetails: userToUpdate.role === "manager" ? 
+        { 
+          department: userToUpdate.managerDetails?.department?._id || 
+                     userToUpdate.managerDetails?.department || "",
+          team: userToUpdate.managerDetails?.team?.map(t => typeof t === 'object' ? t._id : t) || [],
+        } : { department: "", team: [] },
+      employeeDetails: userToUpdate.role === "employee" ? 
+        { 
+          department: userToUpdate.employeeDetails?.department?._id || 
+                     userToUpdate.employeeDetails?.department || "",
+        } : { department: "" },
     });
     setIsUpdate(true);
-    setSelectedUser(user);
+    setSelectedUser(userToUpdate);
     setOpen(true);
   };
 
@@ -209,6 +230,7 @@ const UserManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
 
+      setSuccessMessage("User deleted successfully!");
       const updatedUsers = users.filter((usr) => usr._id !== userToDelete._id);
       setUsers(updatedUsers);
       setOpenDeleteDialog(false);
@@ -232,12 +254,16 @@ const UserManagement = () => {
       ...prevState,
       role: value,
       managerDetails: value === "manager" ? { department: "", team: [] } : {},
-      employeeDetails: value === "employee" ? { department: "" } : {}
+      employeeDetails: value === "employee" ? { department: "" } : {},
     }));
   };
 
+  const handleCloseSnackbar = () => {
+    setError(null);
+    setSuccessMessage(null);
+  };
+
   if (loading) return <Typography variant="h6">Loading users...</Typography>;
-  if (error) return <Typography variant="h6">{error}</Typography>;
 
   return (
     <HRLayout>
@@ -321,11 +347,11 @@ const UserManagement = () => {
         </Table>
       </TableContainer>
 
-      <Dialog open={open} onClose={() => setOpen(false)}>
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update User" : "Create New User"}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
               <TextField
                 label="Username"
                 variant="outlined"
@@ -333,9 +359,10 @@ const UserManagement = () => {
                 name="username"
                 value={newUser.username}
                 onChange={handleInputChange}
+                required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 label="Email"
                 variant="outlined"
@@ -343,9 +370,11 @@ const UserManagement = () => {
                 name="email"
                 value={newUser.email}
                 onChange={handleInputChange}
+                required
+                type="email"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} md={6}>
               <TextField
                 label="Password"
                 variant="outlined"
@@ -354,10 +383,12 @@ const UserManagement = () => {
                 value={newUser.password}
                 onChange={handleInputChange}
                 type="password"
+                required={!isUpdate}
+                helperText={isUpdate ? "Leave blank to keep current password" : ""}
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
                 <InputLabel>Role</InputLabel>
                 <Select
                   name="role"
@@ -376,8 +407,8 @@ const UserManagement = () => {
             {/* Manager-specific fields */}
             {newUser.role === "manager" && (
               <>
-                <Grid item xs={12}>
-                  <FormControl fullWidth margin="dense">
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth margin="dense" required>
                     <InputLabel>Department</InputLabel>
                     <Select
                       name="managerDetails.department"
@@ -398,7 +429,7 @@ const UserManagement = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid item xs={12} md={6}>
                   <FormControl fullWidth margin="dense">
                     <InputLabel>Teams</InputLabel>
                     <Select
@@ -429,8 +460,8 @@ const UserManagement = () => {
 
             {/* Employee-specific fields */}
             {newUser.role === "employee" && (
-              <Grid item xs={12}>
-                <FormControl fullWidth margin="dense">
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth margin="dense" required>
                   <InputLabel>Department</InputLabel>
                   <Select
                     name="employeeDetails.department"
@@ -457,7 +488,7 @@ const UserManagement = () => {
           <Button onClick={() => setOpen(false)} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleSaveUser} color="primary">
+          <Button onClick={handleSaveUser} color="primary" variant="contained">
             {isUpdate ? "Update" : "Save"}
           </Button>
         </DialogActions>
@@ -472,11 +503,34 @@ const UserManagement = () => {
           <Button onClick={() => setOpenDeleteDialog(false)} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleDeleteUser} color="primary" autoFocus>
+          <Button onClick={handleDeleteUser} color="error" variant="contained" autoFocus>
             Delete
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success and Error Notifications */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </HRLayout>
   );
 };
