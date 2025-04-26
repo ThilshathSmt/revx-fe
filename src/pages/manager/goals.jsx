@@ -232,7 +232,7 @@ const GoalManagement = () => {
                 onChange={handleInputChange}
               />
             </Grid>
-            
+
             <Grid item xs={6}>
               <TextField
                 label="Start Date"
@@ -257,7 +257,7 @@ const GoalManagement = () => {
               />
             </Grid>
 
-            
+
 
             <Grid item xs={6}>
               <FormControl fullWidth>
@@ -273,6 +273,22 @@ const GoalManagement = () => {
                       {team.teamName}
                     </MenuItem>
                   ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={newGoal.status}
+                  onChange={handleInputChange}
+                  label="Status"
+                >
+                  <MenuItem value="scheduled">Scheduled</MenuItem>
+                  <MenuItem value="in-progress">In Progress</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
