@@ -25,7 +25,12 @@ import {
   Box,
   Pagination,
   Grid,
-  Card, CardContent, CardActions
+  Card, 
+  CardContent, 
+  CardActions,
+  Snackbar,
+  Alert,
+  FormHelperText
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -37,14 +42,19 @@ const TeamManagement = () => {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [newTeam, setNewTeam] = useState({
     teamName: "",
     members: [],
     departmentId: ""
+  });
+  const [formErrors, setFormErrors] = useState({
+    teamName: "",
+    departmentId: "",
+    members: ""
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -62,19 +72,6 @@ const TeamManagement = () => {
       fetchDepartments();
     }
   }, [user, router]);
-
-  // Filter employees when department changes
-  useEffect(() => {
-    if (newTeam.departmentId && employees.length > 0) {
-      const filtered = employees.filter(emp => 
-        emp.employeeDetails?.department?._id === newTeam.departmentId || 
-        emp.employeeDetails?.department === newTeam.departmentId
-      );
-      setFilteredEmployees(filtered);
-    } else {
-      setFilteredEmployees(employees);
-    }
-  }, [newTeam.departmentId, employees]);
 
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
@@ -104,7 +101,6 @@ const TeamManagement = () => {
       });
       const employees = response.data.filter(u => u.role === 'employee');
       setEmployees(employees);
-      setFilteredEmployees(employees); // Initialize filtered employees with all employees
     } catch (err) {
       console.error("Failed to fetch employees:", err);
     }
@@ -121,11 +117,35 @@ const TeamManagement = () => {
     }
   };
 
-  const handleSaveTeam = async () => {
+  const validateForm = () => {
+    let valid = true;
+    const newErrors = {
+      teamName: "",
+      departmentId: "",
+      members: ""
+    };
+
     if (!newTeam.teamName.trim()) {
-      setError("Team name is required");
-      return;
+      newErrors.teamName = "Team name is required";
+      valid = false;
     }
+
+    if (!newTeam.departmentId) {
+      newErrors.departmentId = "Department is required";
+      valid = false;
+    }
+
+    if (newTeam.members.length === 0) {
+      newErrors.members = "At least one member is required";
+      valid = false;
+    }
+
+    setFormErrors(newErrors);
+    return valid;
+  };
+
+  const handleSaveTeam = async () => {
+    if (!validateForm()) return;
 
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
@@ -141,10 +161,11 @@ const TeamManagement = () => {
         },
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage(isUpdate ? "Team updated successfully!" : "Team created successfully!");
       fetchTeams();
       resetForm();
     } catch (err) {
-      setError("Failed to save team");
+      setError(err.response?.data?.message || "Failed to save team");
     }
   };
 
@@ -164,6 +185,7 @@ const TeamManagement = () => {
       await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage("Team deleted successfully!");
       fetchTeams();
     } catch (err) {
       setError("Failed to delete team");
@@ -176,15 +198,15 @@ const TeamManagement = () => {
       ...newTeam,
       members: typeof value === 'string' ? value.split(',') : value,
     });
+    setFormErrors({
+      ...formErrors,
+      members: ""
+    });
   };
 
-  const handleDepartmentChange = (e) => {
-    const departmentId = e.target.value;
-    setNewTeam({
-      ...newTeam,
-      departmentId,
-      members: [] // Clear members when department changes
-    });
+  const handleCloseSnackbar = () => {
+    setError(null);
+    setSuccessMessage(null);
   };
 
   const resetForm = () => {
@@ -193,14 +215,17 @@ const TeamManagement = () => {
       members: [],
       departmentId: ""
     });
+    setFormErrors({
+      teamName: "",
+      departmentId: "",
+      members: ""
+    });
     setOpen(false);
     setIsUpdate(false);
     setSelectedTeam(null);
-    setFilteredEmployees(employees); // Reset filtered employees
   };
 
   if (loading) return <Typography>Loading teams...</Typography>;
-  if (error) return <Typography color="error">{error}</Typography>;
 
   return (
     <HRLayout>
@@ -239,7 +264,7 @@ const TeamManagement = () => {
                 <br />
                 
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                <PeopleAltIcon /> 
+                  <PeopleAltIcon /> 
                   {team.members.map((member) => (
                     <Chip key={member._id} label={member.username} variant="outlined" />
                   ))}
@@ -285,16 +310,24 @@ const TeamManagement = () => {
             label="Team Name"
             fullWidth
             value={newTeam.teamName}
-            onChange={(e) => setNewTeam({ ...newTeam, teamName: e.target.value })}
+            onChange={(e) => {
+              setNewTeam({ ...newTeam, teamName: e.target.value });
+              setFormErrors({ ...formErrors, teamName: "" });
+            }}
             margin="normal"
             required
+            error={!!formErrors.teamName}
+            helperText={formErrors.teamName}
           />
 
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={!!formErrors.departmentId}>
             <InputLabel>Department</InputLabel>
             <Select
               value={newTeam.departmentId}
-              onChange={handleDepartmentChange}
+              onChange={(e) => {
+                setNewTeam({ ...newTeam, departmentId: e.target.value });
+                setFormErrors({ ...formErrors, departmentId: "" });
+              }}
               label="Department"
             >
               {departments.map((department) => (
@@ -303,9 +336,12 @@ const TeamManagement = () => {
                 </MenuItem>
               ))}
             </Select>
+            {formErrors.departmentId && (
+              <FormHelperText>{formErrors.departmentId}</FormHelperText>
+            )}
           </FormControl>
 
-          <FormControl fullWidth margin="normal">
+          <FormControl fullWidth margin="normal" error={!!formErrors.members}>
             <InputLabel>Team Members</InputLabel>
             <Select
               multiple
@@ -320,12 +356,15 @@ const TeamManagement = () => {
                 </Box>
               )}
             >
-              {filteredEmployees.map((employee) => (
+              {employees.map((employee) => (
                 <MenuItem key={employee._id} value={employee._id}>
                   {employee.username} ({employee.email})
                 </MenuItem>
               ))}
             </Select>
+            {formErrors.members && (
+              <FormHelperText>{formErrors.members}</FormHelperText>
+            )}
           </FormControl>
         </DialogContent>
         <DialogActions>
@@ -335,6 +374,29 @@ const TeamManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success and Error Notifications */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </HRLayout>
   );
 };
