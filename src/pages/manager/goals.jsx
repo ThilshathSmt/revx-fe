@@ -23,21 +23,22 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Box
+  Box,
+  Snackbar,
+  Alert,
+  FormHelperText
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ManagerLayout from "../../components/ManagerLayout";
 
-
-
 const GoalManagement = () => {
   const { user } = useAuth();
   const [goals, setGoals] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [newGoal, setNewGoal] = useState({
     projectTitle: "",
     startDate: "",
@@ -45,6 +46,12 @@ const GoalManagement = () => {
     status: "scheduled",
     teamId: "",
     description: ""
+  });
+  const [formErrors, setFormErrors] = useState({
+    projectTitle: "",
+    startDate: "",
+    dueDate: "",
+    teamId: ""
   });
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
@@ -86,7 +93,45 @@ const GoalManagement = () => {
     }
   };
 
+  const validateForm = () => {
+    let valid = true;
+    const errors = {
+      projectTitle: "",
+      startDate: "",
+      dueDate: "",
+      teamId: ""
+    };
+
+    if (!newGoal.projectTitle.trim()) {
+      errors.projectTitle = "Project title is required";
+      valid = false;
+    }
+
+    if (!newGoal.startDate) {
+      errors.startDate = "Start date is required";
+      valid = false;
+    }
+
+    if (!newGoal.dueDate) {
+      errors.dueDate = "Due date is required";
+      valid = false;
+    } else if (newGoal.startDate && new Date(newGoal.dueDate) < new Date(newGoal.startDate)) {
+      errors.dueDate = "Due date must be after start date";
+      valid = false;
+    }
+
+    if (!newGoal.teamId) {
+      errors.teamId = "Team is required";
+      valid = false;
+    }
+
+    setFormErrors(errors);
+    return valid;
+  };
+
   const handleSaveGoal = async () => {
+    if (!validateForm()) return;
+
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${selectedGoal._id}`
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/create`;
@@ -98,10 +143,11 @@ const GoalManagement = () => {
         data: { ...newGoal, managerId: user.id },
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage(isUpdate ? "Goal updated successfully!" : "Goal created successfully!");
       fetchGoals();
       resetForm();
     } catch (err) {
-      setError("Failed to save goal");
+      setError(err.response?.data?.message || "Failed to save goal");
     }
   };
 
@@ -124,6 +170,7 @@ const GoalManagement = () => {
       await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${goalToDelete._id}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage("Goal deleted successfully!");
       setGoals(goals.filter((g) => g._id !== goalToDelete._id));
       setOpenDeleteDialog(false);
     } catch (err) {
@@ -134,6 +181,15 @@ const GoalManagement = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewGoal({ ...newGoal, [name]: value });
+    // Clear error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors({ ...formErrors, [name]: "" });
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setError(null);
+    setSuccessMessage(null);
   };
 
   const resetForm = () => {
@@ -144,6 +200,12 @@ const GoalManagement = () => {
       status: "scheduled",
       teamId: "",
       description: ""
+    });
+    setFormErrors({
+      projectTitle: "",
+      startDate: "",
+      dueDate: "",
+      teamId: ""
     });
     setOpen(false);
     setIsUpdate(false);
@@ -164,7 +226,6 @@ const GoalManagement = () => {
   };
 
   if (loading) return <Typography variant="h6">Loading goals...</Typography>;
-  if (error) return <Typography variant="h6">{error}</Typography>;
 
   return (
     <ManagerLayout>
@@ -230,6 +291,8 @@ const GoalManagement = () => {
                 fullWidth
                 value={newGoal.projectTitle}
                 onChange={handleInputChange}
+                error={!!formErrors.projectTitle}
+                helperText={formErrors.projectTitle}
               />
             </Grid>
 
@@ -242,6 +305,8 @@ const GoalManagement = () => {
                 InputLabelProps={{ shrink: true }}
                 value={newGoal.startDate}
                 onChange={handleInputChange}
+                error={!!formErrors.startDate}
+                helperText={formErrors.startDate}
               />
             </Grid>
 
@@ -254,13 +319,13 @@ const GoalManagement = () => {
                 InputLabelProps={{ shrink: true }}
                 value={newGoal.dueDate}
                 onChange={handleInputChange}
+                error={!!formErrors.dueDate}
+                helperText={formErrors.dueDate}
               />
             </Grid>
 
-
-
             <Grid item xs={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!formErrors.teamId}>
                 <InputLabel>Team</InputLabel>
                 <Select
                   name="teamId"
@@ -274,6 +339,7 @@ const GoalManagement = () => {
                     </MenuItem>
                   ))}
                 </Select>
+                {formErrors.teamId && <FormHelperText>{formErrors.teamId}</FormHelperText>}
               </FormControl>
             </Grid>
 
@@ -326,6 +392,29 @@ const GoalManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success and Error Notifications */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </ManagerLayout>
   );
 };
