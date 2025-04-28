@@ -18,7 +18,9 @@ import {
   Button,
   TextField,
   Box,
-  Pagination
+  Pagination,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -29,6 +31,7 @@ const DepartmentManagement = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [newDepartment, setNewDepartment] = useState({
     departmentName: "",
     description: "",
@@ -63,6 +66,11 @@ const DepartmentManagement = () => {
       setError("Failed to fetch departments");
       setLoading(false);
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setError(null);
+    setSuccessMessage(null);
   };
 
   // Pagination logic
@@ -102,10 +110,11 @@ const DepartmentManagement = () => {
         data: newDepartment,
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage(isUpdate ? "Department updated successfully!" : "Department created successfully!");
       fetchDepartments();
       resetForm();
     } catch (err) {
-      setError("Failed to save department");
+      setError(err.response?.data?.message || "Failed to save department");
     }
   };
 
@@ -124,6 +133,7 @@ const DepartmentManagement = () => {
       await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${departmentId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
+      setSuccessMessage("Department deleted successfully!");
       fetchDepartments();
     } catch (err) {
       setError("Failed to delete department");
@@ -148,7 +158,6 @@ const DepartmentManagement = () => {
   };
 
   if (loading) return <Typography variant="h6">Loading departments...</Typography>;
-  if (error) return <Typography variant="h6">{error}</Typography>;
 
   return (
     <HRLayout>
@@ -232,6 +241,29 @@ const DepartmentManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success and Error Notifications */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Snackbar>
     </HRLayout>
   );
 };
