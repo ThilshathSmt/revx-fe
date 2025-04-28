@@ -31,12 +31,15 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HRLayout from "../../components/HRLayout";
+import { Man2 } from "@mui/icons-material";
 
 const UserManagement = () => {
+
+  const [emailError, setEmailError] = useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -45,7 +48,7 @@ const UserManagement = () => {
     email: "",
     password: "",
     role: "",
-    managerDetails: { department: "", team: [] },
+    managerDetails: { department: "" },
     employeeDetails: { department: "" },
   });
   const [open, setOpen] = useState(false);
@@ -59,15 +62,16 @@ const UserManagement = () => {
     if (!user || user.role !== "hr") {
       router.push("/");
     } else {
-      const fetchData = async () => {
-        await fetchDepartments();
-        await fetchTeams();
-        await fetchUsers();
-      };
-      fetchData();
+      fetchDepartments();
     }
   }, [user, router]);
-
+  
+  useEffect(() => {
+    if (departments.length > 0) {
+      fetchUsers();
+    }
+  }, [departments]);
+  
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -79,17 +83,6 @@ const UserManagement = () => {
     }
   };
 
-  const fetchTeams = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setTeams(response.data);
-    } catch (err) {
-      console.error("Failed to fetch teams:", err);
-    }
-  };
-
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
@@ -97,23 +90,24 @@ const UserManagement = () => {
       });
 
       const usersWithDetails = response.data.map((user) => {
-        // For managers
-        if (user.role === "manager" && user.managerDetails?.team) {
-          const teamNames = user.managerDetails.team.map((teamId) => {
-            const team = teams.find((t) => t._id === teamId);
-            return team ? team.teamName : "N/A";
-          });
+        if (user.role === "manager") {
+          const departmentId = typeof user.managerDetails?.department === "object"
+            ? user.managerDetails.department._id
+            : user.managerDetails?.department;
+          const department = departments.find(d => d._id === departmentId);
           return {
             ...user,
             managerDetails: {
               ...user.managerDetails,
-              team: teamNames,
+              departmentName: department ? department.departmentName : "N/A",
             },
           };
         }
-        // For employees
         if (user.role === "employee" && user.employeeDetails?.department) {
-          const department = departments.find(d => d._id === user.employeeDetails.department);
+          const departmentId = typeof user.employeeDetails?.department === "object"
+            ? user.employeeDetails.department._id
+            : user.employeeDetails.department;
+          const department = departments.find(d => d._id === departmentId);
           return {
             ...user,
             employeeDetails: {
@@ -134,6 +128,15 @@ const UserManagement = () => {
   };
 
   const handleSaveUser = async () => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(newUser.email)) {
+      setEmailError(true);
+      setEmailErrorMessage("Invalid email address. Please enter a valid email.");
+      return; // Exit function if email is invalid
+    } else {
+      setEmailError(false);
+      setEmailErrorMessage("");
+    }
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${selectedUser._id}`
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/create`;
@@ -156,9 +159,6 @@ const UserManagement = () => {
       if (newUser.role === "manager") {
         userData.managerDetails = {
           department: newUser.managerDetails.department,
-          team: Array.isArray(newUser.managerDetails.team) 
-            ? newUser.managerDetails.team 
-            : [newUser.managerDetails.team],
         };
       } else if (newUser.role === "employee") {
         userData.employeeDetails = {
@@ -180,7 +180,7 @@ const UserManagement = () => {
         email: "",
         password: "",
         role: "",
-        managerDetails: { department: "", team: [] },
+        managerDetails: { department: "" },
         employeeDetails: { department: "" },
       });
       setOpen(false);
@@ -204,8 +204,7 @@ const UserManagement = () => {
         { 
           department: userToUpdate.managerDetails?.department?._id || 
                      userToUpdate.managerDetails?.department || "",
-          team: userToUpdate.managerDetails?.team?.map(t => typeof t === 'object' ? t._id : t) || [],
-        } : { department: "", team: [] },
+        } : { department: "" },
       employeeDetails: userToUpdate.role === "employee" ? 
         { 
           department: userToUpdate.employeeDetails?.department?._id || 
@@ -240,6 +239,19 @@ const UserManagement = () => {
     }
   };
 
+  const handleCancel = () => {
+    setNewUser({
+      username: "",
+      email: "",
+      password: "",
+      role: "",
+      managerDetails: { department: "" },
+      employeeDetails: { department: "" },
+    });
+    setOpen(false);
+    setIsUpdate(false);
+    setSelectedUser(null);
+  };
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewUser((prevState) => ({
@@ -253,7 +265,7 @@ const UserManagement = () => {
     setNewUser((prevState) => ({
       ...prevState,
       role: value,
-      managerDetails: value === "manager" ? { department: "", team: [] } : {},
+      managerDetails: value === "manager" ? { department: "" } : {},
       employeeDetails: value === "employee" ? { department: "" } : {},
     }));
   };
@@ -308,14 +320,9 @@ const UserManagement = () => {
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
                   {user.role === "manager" && (
-                    <>
-                      <Typography variant="body2">
-                        <strong>Department:</strong> {user.managerDetails.department?.departmentName || "N/A"}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Team:</strong> {user.managerDetails.team ? user.managerDetails.team.join(", ") : "N/A"}
-                      </Typography>
-                    </>
+                    <Typography variant="body2">
+                      <strong>Department:</strong> {user.managerDetails?.departmentName || "N/A"}
+                    </Typography>
                   )}
                   {user.role === "employee" && (
                     <Typography variant="body2">
@@ -363,16 +370,18 @@ const UserManagement = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                label="Email"
-                variant="outlined"
-                fullWidth
-                name="email"
-                value={newUser.email}
-                onChange={handleInputChange}
-                required
-                type="email"
-              />
+            <TextField
+              label="Email"
+              variant="outlined"
+              fullWidth
+              name="email"
+              value={newUser.email}
+              onChange={handleInputChange}
+              required
+              type="email"
+              error={emailError} 
+              helperText={emailError ? emailErrorMessage : " "} 
+            />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
@@ -406,56 +415,27 @@ const UserManagement = () => {
 
             {/* Manager-specific fields */}
             {newUser.role === "manager" && (
-              <>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth margin="dense" required>
-                    <InputLabel>Department</InputLabel>
-                    <Select
-                      name="managerDetails.department"
-                      value={newUser.managerDetails.department}
-                      onChange={(e) =>
-                        setNewUser((prevState) => ({
-                          ...prevState,
-                          managerDetails: { ...prevState.managerDetails, department: e.target.value },
-                        }))
-                      }
-                    >
-                      {departments.map((dept) => (
-                        <MenuItem key={dept._id} value={dept._id}>
-                          {dept.departmentName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth margin="dense">
-                    <InputLabel>Teams</InputLabel>
-                    <Select
-                      name="managerDetails.team"
-                      multiple
-                      value={newUser.managerDetails.team || []}
-                      onChange={(e) =>
-                        setNewUser((prevState) => ({
-                          ...prevState,
-                          managerDetails: { ...prevState.managerDetails, team: e.target.value },
-                        }))
-                      }
-                      renderValue={(selected) => {
-                        const selectedTeams = teams.filter(t => selected.includes(t._id));
-                        return selectedTeams.map(t => t.teamName).join(", ");
-                      }}
-                    >
-                      {teams.map((team) => (
-                        <MenuItem key={team._id} value={team._id}>
-                          {team.teamName}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth margin="dense" required>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    name="managerDetails.department"
+                    value={newUser.managerDetails.department}
+                    onChange={(e) =>
+                      setNewUser((prevState) => ({
+                        ...prevState,
+                        managerDetails: { ...prevState.managerDetails, department: e.target.value },
+                      }))
+                    }
+                  >
+                    {departments.map((dept) => (
+                      <MenuItem key={dept._id} value={dept._id}>
+                        {dept.departmentName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             )}
 
             {/* Employee-specific fields */}
@@ -485,9 +465,9 @@ const UserManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} color="primary">
-            Cancel
-          </Button>
+        <Button onClick={handleCancel} color="primary">
+          Cancel
+        </Button>
           <Button onClick={handleSaveUser} color="primary" variant="contained">
             {isUpdate ? "Update" : "Save"}
           </Button>
@@ -514,7 +494,7 @@ const UserManagement = () => {
         open={!!successMessage}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
           {successMessage}
@@ -525,7 +505,7 @@ const UserManagement = () => {
         open={!!error}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
         <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
           {error}
