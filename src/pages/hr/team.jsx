@@ -30,13 +30,26 @@ import {
   CardActions,
   Snackbar,
   Alert,
-  FormHelperText
+  FormHelperText,
+  Skeleton,
+  CircularProgress
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HRLayout from "../../components/HRLayout";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ApartmentIcon from '@mui/icons-material/Apartment';
+
+// Utility function for minimum delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const withMinimumDelay = async (fn, minDelay = 1000) => {
+  const startTime = Date.now();
+  const result = await fn();
+  const elapsed = Date.now() - startTime;
+  const remaining = Math.max(minDelay - elapsed, 0);
+  await delay(remaining);
+  return result;
+};
 
 const TeamManagement = () => {
   const { user } = useAuth();
@@ -59,6 +72,7 @@ const TeamManagement = () => {
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(9);
   const router = useRouter();
@@ -67,11 +81,26 @@ const TeamManagement = () => {
     if (!user || user.role !== "hr") {
       router.push("/");
     } else {
-      fetchTeams();
-      fetchEmployees();
-      fetchDepartments();
+      fetchInitialData();
     }
   }, [user, router]);
+
+  const fetchInitialData = async () => {
+    try {
+      setLoading(true);
+      await withMinimumDelay(async () => {
+        await Promise.all([
+          fetchTeams(),
+          fetchEmployees(),
+          fetchDepartments()
+        ]);
+      });
+    } catch (err) {
+      setError("Failed to load initial data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
@@ -87,10 +116,9 @@ const TeamManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setTeams(response.data);
-      setLoading(false);
     } catch (err) {
       setError("Failed to fetch teams");
-      setLoading(false);
+      throw err;
     }
   };
 
@@ -103,6 +131,7 @@ const TeamManagement = () => {
       setEmployees(employees);
     } catch (err) {
       console.error("Failed to fetch employees:", err);
+      throw err;
     }
   };
 
@@ -114,6 +143,7 @@ const TeamManagement = () => {
       setDepartments(response.data);
     } catch (err) {
       console.error("Failed to fetch departments:", err);
+      throw err;
     }
   };
 
@@ -147,25 +177,30 @@ const TeamManagement = () => {
   const handleSaveTeam = async () => {
     if (!validateForm()) return;
 
-    const url = isUpdate
-      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
-      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/create`;
-
+    setActionLoading(true);
     try {
-      await axios({
-        method: isUpdate ? "put" : "post",
-        url,
-        data: {
-          ...newTeam,
-          createdBy: user.id
-        },
-        headers: { Authorization: `Bearer ${user.token}` },
+      await withMinimumDelay(async () => {
+        const url = isUpdate
+          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
+          : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/create`;
+
+        await axios({
+          method: isUpdate ? "put" : "post",
+          url,
+          data: {
+            ...newTeam,
+            createdBy: user.id
+          },
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        setSuccessMessage(isUpdate ? "Team updated successfully!" : "Team created successfully!");
+        fetchTeams();
+        resetForm();
       });
-      setSuccessMessage(isUpdate ? "Team updated successfully!" : "Team created successfully!");
-      fetchTeams();
-      resetForm();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save team");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -182,13 +217,18 @@ const TeamManagement = () => {
 
   const handleDeleteTeam = async (teamId) => {
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
+      setActionLoading(true);
+      await withMinimumDelay(async () => {
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        setSuccessMessage("Team deleted successfully!");
+        fetchTeams();
       });
-      setSuccessMessage("Team deleted successfully!");
-      fetchTeams();
     } catch (err) {
       setError("Failed to delete team");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -225,7 +265,34 @@ const TeamManagement = () => {
     setSelectedTeam(null);
   };
 
-  if (loading) return <Typography>Loading teams...</Typography>;
+  // Loading skeleton for team cards
+  const renderLoadingSkeletons = () => {
+    return Array.from({ length: teamsPerPage }).map((_, index) => (
+      <Grid item xs={12} sm={6} md={4} key={index}>
+        <Card sx={{ minHeight: 220, borderRadius: 3 }}>
+          <CardContent>
+            <Skeleton variant="text" width="60%" height={40} />
+            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+              <Skeleton variant="circular" width={20} height={20} />
+              <Skeleton variant="text" width="60%" sx={{ ml: 1 }} />
+            </Box>
+            <Box sx={{ mt: 2 }}>
+              <Skeleton variant="text" width="40%" />
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} variant="rounded" width={60} height={24} />
+                ))}
+              </Box>
+            </Box>
+          </CardContent>
+          <CardActions sx={{ justifyContent: "flex-end", px: 2 }}>
+            <Skeleton variant="rounded" width={80} height={36} />
+            <Skeleton variant="rounded" width={80} height={36} sx={{ ml: 1 }} />
+          </CardActions>
+        </Card>
+      </Grid>
+    ));
+  };
 
   return (
     <HRLayout>
@@ -233,75 +300,88 @@ const TeamManagement = () => {
         Team Management
       </Typography>
 
-      <Button variant="contained" onClick={() => setOpen(true)} sx={{ mb: 3 }}>
+      <Button 
+        variant="contained" 
+        onClick={() => setOpen(true)} 
+        sx={{ mb: 3 }}
+        disabled={loading}
+      >
         {isUpdate ? "Update Team" : "Create New Team"}
       </Button>
 
       {/* Team Cards View */}
       <Grid container spacing={3}>
-        {currentTeams.map((team) => (
-          <Grid item xs={12} sm={6} md={4} key={team._id}>
-            <Card
-              sx={{
-                minHeight: 220,
-                borderRadius: 3,
-                boxShadow: 3,
-                transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                "&:hover": {
-                  transform: "scale(1.03)",
-                  boxShadow: 6,
-                  cursor: "pointer",
-                  backgroundColor:"#E8F9FF"
-                },
-              }}
-            >
-              <CardContent>
-                <Typography variant="h6" gutterBottom>{team.teamName}</Typography>
-                <Typography variant="body2" color="textSecondary" textAlign={"center"} gutterBottom>
-                  <ApartmentIcon sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                  Department: {team.departmentId?.departmentName || "N/A"}
-                </Typography>
-                <br />
-                
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                  <PeopleAltIcon /> 
-                  {team.members.map((member) => (
-                    <Chip key={member._id} label={member.username} variant="outlined" />
-                  ))}
-                </Box>
-              </CardContent>
-              <CardActions sx={{ justifyContent: "flex-end", px: 2 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleUpdateTeam(team)}
-                  startIcon={<EditIcon />}
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={() => handleDeleteTeam(team._id)}
-                  startIcon={<DeleteIcon />}
-                >
-                  Delete
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
+        {loading ? (
+          renderLoadingSkeletons()
+        ) : (
+          currentTeams.map((team) => (
+            <Grid item xs={12} sm={6} md={4} key={team._id}>
+              <Card
+                sx={{
+                  minHeight: 220,
+                  borderRadius: 3,
+                  boxShadow: 3,
+                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                  "&:hover": {
+                    transform: "scale(1.03)",
+                    boxShadow: 6,
+                    cursor: "pointer",
+                    backgroundColor:"#E8F9FF"
+                  },
+                }}
+              >
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>{team.teamName}</Typography>
+                  <Typography variant="body2" color="textSecondary" textAlign={"center"} gutterBottom>
+                    <ApartmentIcon sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                    Department: {team.departmentId?.departmentName || "N/A"}
+                  </Typography>
+                  <br />
+                  
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                    <PeopleAltIcon /> 
+                    {team.members.map((member) => (
+                      <Chip key={member._id} label={member.username} variant="outlined" />
+                    ))}
+                  </Box>
+                </CardContent>
+                <CardActions sx={{ justifyContent: "flex-end", px: 2 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleUpdateTeam(team)}
+                    startIcon={actionLoading ? <CircularProgress size={16} /> : <EditIcon />}
+                    disabled={actionLoading}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={() => handleDeleteTeam(team._id)}
+                    startIcon={actionLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
+                    disabled={actionLoading}
+                  >
+                    Delete
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))
+        )}
       </Grid>
 
-      {/* Pagination */}
-      <Pagination
-        count={Math.ceil(teams.length / teamsPerPage)}
-        page={currentPage}
-        onChange={handlePageChange}
-        color="primary"
-        sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
-      />
+      {/* Pagination - Only show when not loading */}
+      {!loading && (
+        <Pagination
+          count={Math.ceil(teams.length / teamsPerPage)}
+          page={currentPage}
+          onChange={handlePageChange}
+          color="primary"
+          sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
+        />
+      )}
 
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
@@ -318,9 +398,10 @@ const TeamManagement = () => {
             required
             error={!!formErrors.teamName}
             helperText={formErrors.teamName}
+            disabled={actionLoading}
           />
 
-          <FormControl fullWidth margin="normal" error={!!formErrors.departmentId}>
+          <FormControl fullWidth margin="normal" error={!!formErrors.departmentId} disabled={actionLoading}>
             <InputLabel>Department</InputLabel>
             <Select
               value={newTeam.departmentId}
@@ -341,7 +422,7 @@ const TeamManagement = () => {
             )}
           </FormControl>
 
-          <FormControl fullWidth margin="normal" error={!!formErrors.members}>
+          <FormControl fullWidth margin="normal" error={!!formErrors.members} disabled={actionLoading}>
             <InputLabel>Team Members</InputLabel>
             <Select
               multiple
@@ -368,9 +449,19 @@ const TeamManagement = () => {
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={resetForm}>Cancel</Button>
-          <Button onClick={handleSaveTeam} variant="contained">
-            {isUpdate ? "Update" : "Create"}
+          <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
+          <Button 
+            onClick={handleSaveTeam} 
+            variant="contained"
+            disabled={actionLoading}
+          >
+            {actionLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : isUpdate ? (
+              "Update"
+            ) : (
+              "Create"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
