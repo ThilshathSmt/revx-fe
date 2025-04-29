@@ -28,6 +28,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import TablePagination from '@mui/material/TablePagination';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HRLayout from "../../components/HRLayout";
@@ -57,6 +58,8 @@ const UserManagement = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const router = useRouter();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     if (!user || user.role !== "hr") {
@@ -71,7 +74,7 @@ const UserManagement = () => {
       fetchUsers();
     }
   }, [departments]);
-  
+    
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -312,7 +315,9 @@ const UserManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {users.map((user) => (
+          {users
+          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((user) => (
               <TableRow key={user._id}>
                 <TableCell>{user._id}</TableCell>
                 <TableCell>{user.username}</TableCell>
@@ -353,7 +358,18 @@ const UserManagement = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
+      <TablePagination
+  component="div"
+  count={users.length}
+  page={page}
+  onPageChange={(event, newPage) => setPage(newPage)}
+  rowsPerPage={rowsPerPage}
+  onRowsPerPageChange={(event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Reset to first page
+  }}
+  rowsPerPageOptions={[5, 10, 20, 50]}
+/>
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update User" : "Create New User"}</DialogTitle>
         <DialogContent>
