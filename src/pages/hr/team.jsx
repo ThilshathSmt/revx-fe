@@ -25,8 +25,8 @@ import {
   Box,
   Pagination,
   Grid,
-  Card, 
-  CardContent, 
+  Card,
+  CardContent,
   CardActions,
   Snackbar,
   Alert,
@@ -300,9 +300,9 @@ const TeamManagement = () => {
         Team Management
       </Typography>
 
-      <Button 
-        variant="contained" 
-        onClick={() => setOpen(true)} 
+      <Button
+        variant="contained"
+        onClick={() => setOpen(true)}
         sx={{ mb: 3 }}
         disabled={loading}
       >
@@ -326,7 +326,7 @@ const TeamManagement = () => {
                     transform: "scale(1.03)",
                     boxShadow: 6,
                     cursor: "pointer",
-                    backgroundColor:"#E8F9FF"
+                    backgroundColor: "#E8F9FF"
                   },
                 }}
               >
@@ -337,9 +337,9 @@ const TeamManagement = () => {
                     Department: {team.departmentId?.departmentName || "N/A"}
                   </Typography>
                   <br />
-                  
+
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    <PeopleAltIcon /> 
+                    <PeopleAltIcon />
                     {team.members.map((member) => (
                       <Chip key={member._id} label={member.username} variant="outlined" />
                     ))}
@@ -437,21 +437,28 @@ const TeamManagement = () => {
                 </Box>
               )}
             >
-              {employees.map((employee) => (
-                <MenuItem key={employee._id} value={employee._id}>
-                  {employee.username} ({employee.email})
-                </MenuItem>
-              ))}
+              {employees
+                .filter(employee =>
+                  employee.employeeDetails?.department === newTeam.departmentId ||
+                  (typeof employee.employeeDetails?.department === "object" &&
+                    employee.employeeDetails?.department?._id === newTeam.departmentId)
+                )
+                .map((employee) => (
+                  <MenuItem key={employee._id} value={employee._id}>
+                    {employee.username} ({employee.email})
+                  </MenuItem>
+                ))}
             </Select>
             {formErrors.members && (
               <FormHelperText>{formErrors.members}</FormHelperText>
             )}
           </FormControl>
+
         </DialogContent>
         <DialogActions>
           <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
-          <Button 
-            onClick={handleSaveTeam} 
+          <Button
+            onClick={handleSaveTeam}
             variant="contained"
             disabled={actionLoading}
           >
