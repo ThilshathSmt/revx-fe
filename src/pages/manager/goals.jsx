@@ -84,12 +84,16 @@ const GoalManagement = () => {
 
   const fetchManagedTeams = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setTeams(response.data);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/by-manager/${user.id}`,
+        {
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
+      );
+      setTeams(response.data.teams);
     } catch (err) {
       console.error("Failed to fetch teams:", err);
+      setError("Failed to fetch your teams");
     }
   };
 
