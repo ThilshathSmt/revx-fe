@@ -22,7 +22,7 @@ import { useRouter } from "next/router";
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/employee" },
   { text: "My Tasks", icon: <AssignmentIcon />, path: "/employee/tasks" },
-  { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/employee/reviews" },
+  { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/employee/taskReviews" },
   { text: "Reports", icon: <BarChartIcon />, path: "/employee/reports" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
 ];
