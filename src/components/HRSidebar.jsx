@@ -27,6 +27,7 @@ const menuItems = [
   { text: "Team", icon: <DomainIcon />, path: "/hr/team" },
   { text: "User Management", icon: <PeopleIcon />, path: "/hr/user-management" },
   { text: "Review Cycles", icon: <EventNoteIcon />, path: "/hr/goalReviews" },
+  { text: "Task Review", icon: <EventNoteIcon />, path: "/hr/taskReviews" },
   { text: "Notifications", icon: <NotificationsIcon />, path: "/hr/notifications" },
   { text: "Reports", icon: <BarChartIcon />, path: "/hr/reports" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
