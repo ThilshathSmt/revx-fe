@@ -91,37 +91,41 @@ const Profile = () => {
     formData.append('profilePicture', profilePicture);
 
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/upload-profile-picture`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+        const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/upload-profile-picture`,
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
 
-      if (response.status === 200) {
-        const updatedProfilePicture = response.data.profilePicture
-          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${response.data.profilePicture}`
-          : null;
+        if (response.status === 200) {
+            // After successful upload, fetch the updated profile picture
+            const profilePictureResponse = await axios.get(
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${user.token}`,
+                    },
+                    responseType: 'blob',
+                }
+            );
 
-        if (updatedProfilePicture) {
-          setImagePreview(updatedProfilePicture);
-          setSnackbarMessage('Profile picture updated successfully');
-          setOpenSnackbar(true);
-        } else {
-          setError('Profile picture URL not returned from server.');
+            const imageUrl = URL.createObjectURL(profilePictureResponse.data);
+            setImagePreview(imageUrl);
+            setSnackbarMessage('Profile picture updated successfully');
+            setOpenSnackbar(true);
         }
-      }
     } catch (err) {
-      console.error('Error uploading profile picture:', err);
-      setError('Failed to upload profile picture.');
-      setSnackbarMessage('Failed to upload profile picture.');
-      setOpenSnackbar(true);
+        console.error('Error uploading profile picture:', err);
+        setError('Failed to upload profile picture.');
+        setSnackbarMessage('Failed to upload profile picture.');
+        setOpenSnackbar(true);
     }
-  };
+};
 
   const handleOpenPasswordDialog = () => {
     setOpenPasswordDialog(true);
@@ -180,41 +184,55 @@ const Profile = () => {
   };
 
   const handleProfileUpdate = async () => {
-    if (!updatedUsername || !updatedEmail) {
-      setError('Username and email are required.');
-      return;
-    }
+    console.log('Attempting to update profile with:', {
+        updatedUsername,
+        updatedEmail,
+        userId: user.id
+    });
 
     try {
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${user.id}`,
-        {
-          username: updatedUsername,
-          email: updatedEmail,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
+        const response = await axios.put(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${user.id}`,
+            {
+                username: updatedUsername,
+                email: updatedEmail
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log('Update response:', response.data);
+
+        if (response.data && response.data.success) {
+            setSnackbarMessage('Profile updated successfully');
+            setUserDetails(prev => ({
+                ...prev,
+                username: updatedUsername,
+                email: updatedEmail
+            }));
+            handleCloseEditProfileDialog();
+            router.push(`/${userDetails?.role.toLowerCase()}`);
+        } else {
+            throw new Error(response.data?.message || 'Update failed');
         }
-      );
-
-      if (response.status === 200) {
-        setSnackbarMessage('Profile updated successfully');
-        setOpenSnackbar(true);
-        setUserDetails({
-          ...userDetails,
-          username: updatedUsername,
-          email: updatedEmail,
-        });
-        handleCloseEditProfileDialog();
-      }
     } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('Failed to update profile.');
+        console.error('Full update error:', {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status
+        });
+        
+        const errorMessage = err.response?.data?.message || 
+                          err.message || 
+                          'Failed to update profile. Please try again.';
+        setSnackbarMessage(errorMessage);
+        setOpenSnackbar(true);
     }
-  };
-
+};
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
