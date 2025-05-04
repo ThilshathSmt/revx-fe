@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
@@ -13,6 +12,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import { useRouter } from "next/router";
 import { signIn, useSession } from "next-auth/react";
@@ -25,15 +26,35 @@ const SignIn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Forget Password States
-  const [openForgetPassword, setOpenForgetPassword] = useState(false);
-  const [resetUsername, setResetUsername] = useState("");
-  const [resetEmail, setResetEmail] = useState(""); // Added Email
-  const [resetPassword, setResetPassword] = useState("");
+  // Password Reset States
+  const [openResetDialog, setOpenResetDialog] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1 = request, 2 = confirm
+  const [email, setEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
+
+  // Check if there's a token in the URL (for direct link access)
+  useEffect(() => {
+    if (router.query.token) {
+      setOpenResetDialog(true);
+      setResetStep(2);
+      setResetToken(router.query.token);
+    }
+  }, [router.query.token]);
 
   const handleSignIn = async () => {
+    if (!username || !password) {
+      setError("Please enter both username and password");
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -47,6 +68,7 @@ const SignIn = () => {
       if (res?.error) {
         setError("Invalid credentials. Please try again.");
       } else {
+        // Redirect based on role after successful sign-in
         if (status === "authenticated") {
           const userRole = session?.user?.role;
           if (userRole === "hr") {
@@ -66,40 +88,99 @@ const SignIn = () => {
     }
   };
 
-  // Handle Forget Password Reset
-  const handleForgetPassword = async () => {
+  const handleRequestReset = async () => {
+    if (!email) {
+      setResetError("Email is required");
+      return;
+    }
+
     setResetError("");
     setResetLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5001/api/auth/login", {
+      const response = await fetch("http://localhost:5001/api/auth/request-reset", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: resetUsername,
-          email: resetEmail,
-          newPassword: resetPassword,
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send reset email");
+      }
+
+      setResetStep(2);
+      setSnackbar({
+        open: true,
+        message: "If an account exists with this email, a reset link has been sent",
+        severity: "success"
+      });
+    } catch (err) {
+      setResetError(err.message);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleConfirmReset = async () => {
+    if (!resetToken || !newPassword) {
+      setResetError("Token and new password are required");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setResetError("Password must be at least 8 characters");
+      return;
+    }
+
+    setResetError("");
+    setResetLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:5001/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          token: resetToken, 
+          newPassword 
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to reset password.");
+        throw new Error(data.message || "Failed to reset password");
       }
 
-      setOpenForgetPassword(false);
-      setResetUsername("");
-      setResetEmail(""); // Clear Email
-      setResetPassword("");
-      alert("Password reset successfully!");
+      setSnackbar({
+        open: true,
+        message: "Password has been reset successfully!",
+        severity: "success"
+      });
+      handleCloseResetDialog();
     } catch (err) {
-      setResetError(err.message || "An error occurred while resetting the password.");
+      setResetError(err.message);
     } finally {
       setResetLoading(false);
     }
+  };
+
+  const handleCloseResetDialog = () => {
+    setOpenResetDialog(false);
+    setResetStep(1);
+    setEmail("");
+    setResetToken("");
+    setNewPassword("");
+    setResetError("");
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -183,46 +264,62 @@ const SignIn = () => {
             <Button
               color="primary"
               sx={{ textTransform: "none", fontWeight: "bold" }}
-              onClick={() => setOpenForgetPassword(true)}
+              onClick={() => setOpenResetDialog(true)}
             >
-              Forget Password?
+              Forgot Password?
             </Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Forget Password Dialog */}
-      <Dialog open={openForgetPassword} onClose={() => setOpenForgetPassword(false)}>
-        <DialogTitle>Reset Password</DialogTitle>
+      {/* Password Reset Dialog */}
+      <Dialog open={openResetDialog} onClose={handleCloseResetDialog}>
+        <DialogTitle>
+          {resetStep === 1 ? "Request Password Reset" : "Set New Password"}
+        </DialogTitle>
         <DialogContent>
-          <TextField
-            label="Username"
-            variant="outlined"
-            fullWidth
-            sx={{ marginBottom: 2 }}
-            value={resetUsername}
-            onChange={(e) => setResetUsername(e.target.value)}
-            required
-          />
-          <TextField
-            label="Email"
-            variant="outlined"
-            fullWidth
-            sx={{ marginBottom: 2 }}
-            value={resetEmail}
-            onChange={(e) => setResetEmail(e.target.value)}
-            required
-          />
-          <TextField
-            label="New Password"
-            variant="outlined"
-            type="password"
-            fullWidth
-            sx={{ marginBottom: 2 }}
-            value={resetPassword}
-            onChange={(e) => setResetPassword(e.target.value)}
-            required
-          />
+          {resetStep === 1 ? (
+            <>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Enter your email to receive a password reset link
+              </Typography>
+              <TextField
+                label="Email"
+                variant="outlined"
+                fullWidth
+                sx={{ marginBottom: 2 }}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Enter the reset token and your new password
+              </Typography>
+              <TextField
+                label="Reset Token"
+                variant="outlined"
+                fullWidth
+                sx={{ marginBottom: 2 }}
+                value={resetToken}
+                onChange={(e) => setResetToken(e.target.value)}
+                required
+              />
+              <TextField
+                label="New Password"
+                variant="outlined"
+                type="password"
+                fullWidth
+                sx={{ marginBottom: 2 }}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                helperText="Password must be at least 8 characters"
+                required
+              />
+            </>
+          )}
           {resetError && (
             <Typography color="error" sx={{ marginBottom: 2 }}>
               {resetError}
@@ -230,16 +327,44 @@ const SignIn = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenForgetPassword(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCloseResetDialog}
+            disabled={resetLoading}
+          >
+            Cancel
+          </Button>
           <Button
-            onClick={handleForgetPassword}
+            onClick={resetStep === 1 ? handleRequestReset : handleConfirmReset}
             disabled={resetLoading}
             variant="contained"
+            color="primary"
           >
-            {resetLoading ? <CircularProgress size={24} /> : "Reset Password"}
+            {resetLoading ? (
+              <CircularProgress size={24} />
+            ) : resetStep === 1 ? (
+              "Send Reset Link"
+            ) : (
+              "Reset Password"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
