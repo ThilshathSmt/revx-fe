@@ -143,8 +143,8 @@ const EmployeeTaskReview = () => {
             {reviews.length > 0 ? (
               reviews.map((review) => (
                 <TableRow key={review._id}>
-                  <TableCell>{review.taskId?.title || "N/A"}</TableCell>
-                  <TableCell>{review.goalId?.projectTitle || "N/A"}</TableCell>
+                  <TableCell>{review.taskId?.taskTitle || "N/A"}</TableCell>
+                  <TableCell>{review.projectId?.projectTitle || "N/A"}</TableCell>
                   <TableCell>{review.teamId?.teamName || "N/A"}</TableCell>
                   <TableCell>
                     {review.dueDate ? new Date(review.dueDate).toLocaleDateString() : "N/A"}
@@ -204,7 +204,7 @@ const EmployeeTaskReview = () => {
         maxWidth="md"
       >
         <DialogTitle>
-          Submit Review for {selectedReview?.taskId?.title || "Task"}
+          Submit Review for {selectedReview?.taskId?.taskTitle || "Task"}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 2 }}>
