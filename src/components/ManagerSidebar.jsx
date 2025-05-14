@@ -27,7 +27,7 @@ const menuItems = [
   { text: "Task Management", icon: <AssignmentIcon />, path: "/manager/tasks" },
   { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/manager/goalReviews" },
   { text: "Team Performance", icon: <TrendingUpIcon />, path: "/manager/performance" },
-  { text: "Reports", icon: <BarChartIcon />, path: "/manager/reports" },
+  { text: "Feedback", icon: <BarChartIcon />, path: "/manager/feedback" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
 ];
 
