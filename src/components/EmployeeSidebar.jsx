@@ -23,7 +23,7 @@ const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/employee" },
   { text: "My Tasks", icon: <AssignmentIcon />, path: "/employee/tasks" },
   { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/employee/reviews" },
-  { text: "Reports", icon: <BarChartIcon />, path: "/employee/reports" },
+  { text: "selfAssessment", icon: <BarChartIcon />, path: "/employee/SelfAssessment" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
 ];
 
