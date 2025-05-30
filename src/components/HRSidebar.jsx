@@ -15,6 +15,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import DomainIcon from "@mui/icons-material/Domain";
 import FlagIcon from "@mui/icons-material/Flag";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import RecyclingIcon from '@mui/icons-material/Recycling';
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -27,7 +28,7 @@ const menuItems = [
   { text: "Team", icon: <DomainIcon />, path: "/hr/team" },
   { text: "User Management", icon: <PeopleIcon />, path: "/hr/user-management" },
   { text: "Review Cycles", icon: <EventNoteIcon />, path: "/hr/goalReviews" },
-  { text: "Task Review", icon: <EventNoteIcon />, path: "/hr/taskReviews" },
+  { text: "Task Review", icon: <RecyclingIcon />, path: "/hr/taskReviews" },
   { text: "Notifications", icon: <NotificationsIcon />, path: "/hr/notifications" },
   { text: "Reports", icon: <BarChartIcon />, path: "/hr/reports" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
