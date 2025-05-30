@@ -72,8 +72,8 @@ const GoalReviewManagement = () => {
       }
     };
   
-    fetchTeamsIfNeeded(); // ✅ call it here
-  }, [newReview.managerId]); // ✅ dependency is correct
+    fetchTeamsIfNeeded(); //  call it here
+  }, [newReview.managerId]); //  dependency is correct
   
   
 
@@ -280,7 +280,7 @@ const fetchManagers = async () => {
       </Typography>
 
       {/* Create or Update Review Button */}
-      <Button variant="contained" color="primary" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
+      <Button variant="contained" color="#90ee90" onClick={() => setOpen(true)} style={{ marginBottom: "20px" }}>
         {isUpdate ? "Update Review Cycle" : "Create Review Cycle"}
       </Button>
 
