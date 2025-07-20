@@ -27,9 +27,9 @@ const menuItems = [
   { text: "Department", icon: <DomainIcon />, path: "/hr/department" },
   { text: "Team", icon: <DomainIcon />, path: "/hr/team" },
   { text: "User Management", icon: <PeopleIcon />, path: "/hr/user-management" },
-  { text: "Review Cycles", icon: <EventNoteIcon />, path: "/hr/goalReviews" },
+  { text: "Goal Review", icon: <EventNoteIcon />, path: "/hr/goalReviews" },
   { text: "Task Review", icon: <RecyclingIcon />, path: "/hr/taskReviews" },
-  { text: "Notifications", icon: <NotificationsIcon />, path: "/hr/notifications" },
+  // { text: "Notifications", icon: <NotificationsIcon />, path: "/hr/notification  " },
   { text: "Reports", icon: <BarChartIcon />, path: "/hr/reports" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
 ];
