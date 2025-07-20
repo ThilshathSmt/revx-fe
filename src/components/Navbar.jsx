@@ -1,12 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppBar, Toolbar, IconButton, Badge, InputBase, Box, Button, Avatar } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
-import { useRouter } from 'next/router'; // For redirecting after sign-out
-import { signOut } from 'next-auth/react'; // Import NextAuth's signOut function
+import { useRouter } from 'next/router';
+import { useNotificationCount } from '../hooks/useNotifications';
+import HRNotificationPage from '../pages/hr/notification';
 
 const Navbar = () => {
-  const router = useRouter(); // Initialize router to handle redirection after sign-out
+  const router = useRouter();
+  const { unreadCount } = useNotificationCount();
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
+
+  const handleNotificationClick = (event) => {
+    setNotificationAnchor(event.currentTarget);
+  };
+
+  const handleCloseNotification = () => {
+    setNotificationAnchor(null);
+  };
+
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
@@ -35,11 +47,23 @@ const Navbar = () => {
           </Box>
 
           {/* Notification Icon with Badge */}
-          <IconButton color="inherit" sx={{ marginRight: 2 }}>
-            <Badge badgeContent={3} color="error">
+          <IconButton 
+            color="inherit" 
+            sx={{ marginRight: 2 }}
+            onClick={handleNotificationClick}
+            id="notification-button"
+          >
+            <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
+
+          {/* Notification Popup */}
+          <HRNotificationPage 
+            isPopup={true}
+            anchorEl={notificationAnchor}
+            onClose={handleCloseNotification}
+          />
 
           {/* Sign Out Button */}
           <Button color="inherit" sx={{ color: 'white' }} onClick={() => router.push('/auth/signout')}>
