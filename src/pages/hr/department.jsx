@@ -54,6 +54,8 @@ const DepartmentManagement = () => {
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -151,11 +153,19 @@ const DepartmentManagement = () => {
     setOpen(true);
   };
 
-  const handleDeleteDepartment = async (departmentId) => {
+  const handleDeleteClick = (department) => {
+    setDepartmentToDelete(department);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteDepartment = async () => {
+    if (!departmentToDelete) return;
+    
     try {
       setActionLoading(true);
+      setDeleteDialogOpen(false);
       await withMinimumDelay(async () => {
-        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${departmentId}`, {
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments/${departmentToDelete._id}`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setSuccessMessage("Department deleted successfully!");
@@ -165,7 +175,13 @@ const DepartmentManagement = () => {
       setError("Failed to delete department");
     } finally {
       setActionLoading(false);
+      setDepartmentToDelete(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setDepartmentToDelete(null);
   };
 
   const handleInputChange = (e) => {
@@ -220,7 +236,7 @@ const DepartmentManagement = () => {
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Department Name</strong></TableCell>
               <TableCell><strong>Description</strong></TableCell>
               <TableCell><strong>Actions</strong></TableCell>
@@ -231,7 +247,7 @@ const DepartmentManagement = () => {
               renderLoadingSkeletons()
             ) : (
               currentDepartments.map((department) => (
-                <TableRow key={department._id}>
+                <TableRow key={department._id} hover>
                   <TableCell>{department.departmentName}</TableCell>
                   <TableCell>{department.description}</TableCell>
                   <TableCell>
@@ -247,7 +263,7 @@ const DepartmentManagement = () => {
                       <Button 
                         variant="outlined" 
                         color="error" 
-                        onClick={() => handleDeleteDepartment(department._id)}
+                        onClick={() => handleDeleteClick(department)}
                         disabled={actionLoading}
                       >
                         {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
@@ -272,6 +288,7 @@ const DepartmentManagement = () => {
         />
       )}
 
+      {/* Department Form Dialog */}
       <Dialog open={open} onClose={resetForm}>
         <DialogTitle>{isUpdate ? "Update Department" : "Create New Department"}</DialogTitle>
         <DialogContent>
@@ -316,6 +333,28 @@ const DepartmentManagement = () => {
             ) : (
               "Save"
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the department "{departmentToDelete?.departmentName}"?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteDepartment} 
+            color="error"
+            disabled={actionLoading}
+          >
+            {actionLoading ? <CircularProgress size={24} /> : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>

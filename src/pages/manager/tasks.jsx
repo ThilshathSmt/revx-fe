@@ -139,13 +139,13 @@ const TaskManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       const teamId = goalResponse.data?.teamId._id;
-      
+
       if (!teamId) {
         console.error("No team associated with this project.");
         setTeamEmployees([]);
         return;
       }
-  
+
       const teamResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
@@ -189,7 +189,19 @@ const TaskManagement = () => {
     if (!newTask.startDate) {
       errors.startDate = "Start date is required";
       valid = false;
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Clear time part
+
+      const selectedDate = new Date(newTask.startDate);
+      selectedDate.setHours(0, 0, 0, 0); // Clear time part
+
+      if (selectedDate < today) {
+        errors.startDate = "Start date cannot be in the past";
+        valid = false;
+      }
     }
+
 
     if (!newTask.dueDate) {
       errors.dueDate = "Due date is required";
@@ -348,10 +360,10 @@ const TaskManagement = () => {
         Task Management
       </Typography>
 
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={() => setOpen(true)} 
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setOpen(true)}
         style={{ marginBottom: "20px" }}
         disabled={loading}
       >
@@ -362,7 +374,7 @@ const TaskManagement = () => {
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Task Title</strong></TableCell>
               <TableCell><strong>Project</strong></TableCell>
               <TableCell><strong>Start Date</strong></TableCell>
@@ -378,7 +390,7 @@ const TaskManagement = () => {
               renderLoadingSkeletons()
             ) : (
               currentTasks.map((task) => (
-                <TableRow key={task._id}>
+                <TableRow key={task._id} hover>
                   <TableCell>{task.taskTitle}</TableCell>
                   <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
                   <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
@@ -390,17 +402,17 @@ const TaskManagement = () => {
                   <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
                   <TableCell>
                     <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                      <Button 
-                        variant="outlined" 
-                        color="primary" 
+                      <Button
+                        variant="outlined"
+                        color="primary"
                         onClick={() => handleUpdateTask(task)}
                         disabled={actionLoading}
                       >
                         {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
                       </Button>
-                      <Button 
-                        variant="outlined" 
-                        color="error" 
+                      <Button
+                        variant="outlined"
+                        color="error"
                         onClick={() => handleDeleteTask(task._id)}
                         disabled={actionLoading}
                       >
@@ -444,9 +456,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" error={!!formErrors.projectId} disabled={actionLoading}>
             <InputLabel>Project</InputLabel>
-            <Select 
-              name="projectId" 
-              value={newTask.projectId} 
+            <Select
+              name="projectId"
+              value={newTask.projectId}
               onChange={handleInputChange}
             >
               {goals.map((goal) => (
@@ -486,9 +498,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" disabled={actionLoading}>
             <InputLabel>Priority</InputLabel>
-            <Select 
-              name="priority" 
-              value={newTask.priority} 
+            <Select
+              name="priority"
+              value={newTask.priority}
               onChange={handleInputChange}
             >
               {["low", "medium", "high"].map((priority) => (
@@ -499,9 +511,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" error={!!formErrors.employeeId} disabled={actionLoading}>
             <InputLabel>Employee</InputLabel>
-            <Select 
-              name="employeeId" 
-              value={newTask.employeeId} 
+            <Select
+              name="employeeId"
+              value={newTask.employeeId}
               onChange={handleInputChange}
             >
               {teamEmployees.map((employee) => (
@@ -526,8 +538,8 @@ const TaskManagement = () => {
 
         <DialogActions>
           <Button onClick={resetForm} color="primary" disabled={actionLoading}>Cancel</Button>
-          <Button 
-            onClick={handleSaveTask} 
+          <Button
+            onClick={handleSaveTask}
             color="primary"
             disabled={actionLoading}
           >
