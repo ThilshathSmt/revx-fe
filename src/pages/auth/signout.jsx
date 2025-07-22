@@ -24,17 +24,16 @@ const SignOut = () => {
   const router = useRouter();
 
   const handleSignOutClick = async () => {
-    setLoading(true);
-    try {
-      await signOut({
-        callbackUrl: "/auth/signin", // Redirect to Home Page after sign-out
-      });
-    } catch (error) {
-      console.error("Error during sign-out:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    await signOut({ redirect: false }); 
+    window.location.href = "/auth/signin"; 
+  } catch (error) {
+    console.error("Error during sign-out:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box
