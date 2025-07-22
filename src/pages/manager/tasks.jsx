@@ -27,7 +27,7 @@ import {
   FormHelperText,
   Skeleton,
   CircularProgress,
-  Pagination
+  TablePagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -73,8 +73,10 @@ const TaskManagement = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [teamEmployees, setTeamEmployees] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [tasksPerPage] = useState(5); // Number of tasks per page
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -156,14 +158,13 @@ const TaskManagement = () => {
     }
   };
 
-  // Pagination logic
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask);
-  const totalPages = Math.ceil(tasks.length / tasksPerPage);
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
-  const handlePageChange = (event, value) => {
-    setCurrentPage(value);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const validateForm = () => {
@@ -191,17 +192,16 @@ const TaskManagement = () => {
       valid = false;
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Clear time part
+      today.setHours(0, 0, 0, 0);
 
       const selectedDate = new Date(newTask.startDate);
-      selectedDate.setHours(0, 0, 0, 0); // Clear time part
+      selectedDate.setHours(0, 0, 0, 0);
 
       if (selectedDate < today) {
         errors.startDate = "Start date cannot be in the past";
         valid = false;
       }
     }
-
 
     if (!newTask.dueDate) {
       errors.dueDate = "Due date is required";
@@ -248,7 +248,6 @@ const TaskManagement = () => {
     }
   };
 
-  // Open the update dialog with selected task data
   const handleUpdateTask = (task) => {
     setNewTask({
       projectId: task.projectId?._id || "",
@@ -265,16 +264,22 @@ const TaskManagement = () => {
     setOpen(true);
   };
 
-  // Delete a task
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteClick = (taskId) => {
+    const task = tasks.find(t => t._id === taskId);
+    setTaskToDelete(task);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteTask = async () => {
     try {
       setActionLoading(true);
       await withMinimumDelay(async () => {
-        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/${taskId}`, {
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/${taskToDelete._id}`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setSuccessMessage("Task deleted successfully!");
-        fetchTasks();
+        setTasks(tasks.filter(t => t._id !== taskToDelete._id));
+        setOpenDeleteDialog(false);
       });
     } catch (err) {
       setError("Failed to delete task");
@@ -333,9 +338,8 @@ const TaskManagement = () => {
     }
   };
 
-  // Loading skeleton for table rows
   const renderLoadingSkeletons = () => {
-    return Array.from({ length: tasksPerPage }).map((_, index) => (
+    return Array.from({ length: rowsPerPage }).map((_, index) => (
       <TableRow key={index}>
         <TableCell><Skeleton variant="text" width="80%" /></TableCell>
         <TableCell><Skeleton variant="text" width="70%" /></TableCell>
@@ -370,7 +374,6 @@ const TaskManagement = () => {
         {isUpdate ? "Update Task" : "Create Task"}
       </Button>
 
-      {/* Tasks Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -389,55 +392,55 @@ const TaskManagement = () => {
             {loading ? (
               renderLoadingSkeletons()
             ) : (
-              currentTasks.map((task) => (
-                <TableRow key={task._id} hover>
-                  <TableCell>{task.taskTitle}</TableCell>
-                  <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
-                  <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <span style={getStatusStyle(task.status)}>{task.status}</span>
-                  </TableCell>
-                  <TableCell>{task.priority}</TableCell>
-                  <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleUpdateTask(task)}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleDeleteTask(task._id)}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
-                      </Button>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+              tasks
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((task) => (
+                  <TableRow key={task._id} hover>
+                    <TableCell>{task.taskTitle}</TableCell>
+                    <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
+                    <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span style={getStatusStyle(task.status)}>{task.status}</span>
+                    </TableCell>
+                    <TableCell>{task.priority}</TableCell>
+                    <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleUpdateTask(task)}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleDeleteClick(task._id)}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Pagination - Only show when not loading */}
-      {!loading && tasks.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={totalPages}
-            page={currentPage}
-            onChange={handlePageChange}
-            color="primary"
-          />
-        </Box>
-      )}
+      <TablePagination
+        component="div"
+        count={tasks.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
 
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Task" : "Create New Task"}</DialogTitle>
@@ -554,7 +557,38 @@ const TaskManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Success and Error Notifications */}
+      {/* Delete Confirmation Dialog */}
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={() => setOpenDeleteDialog(false)}
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the task "{taskToDelete?.taskTitle}"?
+            <br />
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)} 
+            disabled={actionLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteTask}
+            color="error"
+            variant="contained"
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={20} /> : null}
+          >
+            {actionLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={!!successMessage}
         autoHideDuration={6000}

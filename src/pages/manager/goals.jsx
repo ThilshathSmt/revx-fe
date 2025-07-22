@@ -28,7 +28,8 @@ import {
   Alert,
   FormHelperText,
   Skeleton,
-  CircularProgress
+  CircularProgress,
+  TablePagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -72,6 +73,8 @@ const GoalManagement = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const router = useRouter();
 
   useEffect(() => {
@@ -103,7 +106,51 @@ const GoalManagement = () => {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      setGoals(response.data);
+      const updatedGoals = await Promise.all(
+        response.data.map(async (goal) => {
+          // Fetch tasks for the goal
+          const tasksRes = await axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/project/${goal._id}`,
+            { headers: { Authorization: `Bearer ${user.token}` } }
+          );
+          const tasks = tasksRes.data;
+
+          // Determine status based on tasks' statuses
+          let newStatus = 'scheduled'; // default
+
+          if (tasks.length > 0) {
+            const anyInProgress = tasks.some(task => task.status === 'in-progress');
+            const allCompleted = tasks.every(task => task.status === 'completed');
+
+            if (allCompleted) {
+              newStatus = 'completed';
+            } else if (anyInProgress) {
+              newStatus = 'in-progress';
+            } else {
+              newStatus = 'scheduled';
+            }
+          }
+
+          // Update goal status if changed
+          if (goal.status !== newStatus) {
+            try {
+              await axios.put(
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${goal._id}`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${user.token}` } }
+              );
+              // Return updated goal with new status for UI
+              return { ...goal, status: newStatus };
+            } catch (updateErr) {
+              console.error(`Failed to update goal status for goal ${goal._id}`, updateErr);
+              return goal; // fall back to original status
+            }
+          }
+
+          return { ...goal, status: newStatus };
+        })
+      );
+      setGoals(updatedGoals);
     } catch (err) {
       setError("Failed to fetch goals");
       throw err;
@@ -126,6 +173,15 @@ const GoalManagement = () => {
     }
   };
 
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
   const validateForm = () => {
     let valid = true;
     const errors = {
@@ -145,17 +201,16 @@ const GoalManagement = () => {
       valid = false;
     } else {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Remove time
+      today.setHours(0, 0, 0, 0);
 
       const selectedDate = new Date(newGoal.startDate);
-      selectedDate.setHours(0, 0, 0, 0); // Remove time
+      selectedDate.setHours(0, 0, 0, 0);
 
       if (selectedDate < today) {
         errors.startDate = "Start date cannot be in the past";
         valid = false;
       }
     }
-
 
     if (!newGoal.dueDate) {
       errors.dueDate = "Due date is required";
@@ -177,6 +232,11 @@ const GoalManagement = () => {
   const handleSaveGoal = async () => {
     if (!validateForm()) return;
 
+    // Ensure status is initially "scheduled" on create
+    if (!isUpdate) {
+      newGoal.status = "scheduled";
+    }
+
     setActionLoading(true);
     try {
       await withMinimumDelay(async () => {
@@ -191,7 +251,7 @@ const GoalManagement = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setSuccessMessage(isUpdate ? "Goal updated successfully!" : "Goal created successfully!");
-        fetchGoals();
+        await fetchGoals();
         resetForm();
       });
     } catch (err) {
@@ -236,7 +296,6 @@ const GoalManagement = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewGoal({ ...newGoal, [name]: value });
-    // Clear error when user starts typing
     if (formErrors[name]) {
       setFormErrors({ ...formErrors, [name]: "" });
     }
@@ -280,9 +339,8 @@ const GoalManagement = () => {
     }
   };
 
-  // Loading skeleton for table rows
   const renderLoadingSkeletons = () => {
-    return Array.from({ length: 5 }).map((_, index) => (
+    return Array.from({ length: rowsPerPage }).map((_, index) => (
       <TableRow key={index}>
         <TableCell><Skeleton variant="text" width="80%" /></TableCell>
         <TableCell><Skeleton variant="text" width="60%" /></TableCell>
@@ -330,45 +388,57 @@ const GoalManagement = () => {
             {loading ? (
               renderLoadingSkeletons()
             ) : (
-              goals.map((goal) => (
-                <TableRow key={goal._id} hover>
-                  <TableCell>{goal.projectTitle}</TableCell>
-                  <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <span style={getStatusStyle(goal.status)}>
-                      {goal.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        variant="outlined"
-                        onClick={() => handleUpdateGoal(goal)}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => {
-                          setGoalToDelete(goal);
-                          setOpenDeleteDialog(true);
-                        }}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
-                      </Button>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+              goals
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((goal) => (
+                  <TableRow key={goal._id} hover>
+                    <TableCell>{goal.projectTitle}</TableCell>
+                    <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span style={getStatusStyle(goal.status)}>
+                        {goal.status}
+                      </span>
+                    </TableCell>
+                    <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => handleUpdateGoal(goal)}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => {
+                            setGoalToDelete(goal);
+                            setOpenDeleteDialog(true);
+                          }}
+                          disabled={actionLoading}
+                        >
+                          {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
       </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={goals.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
 
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Goal" : "Create New Goal"}</DialogTitle>
@@ -444,6 +514,7 @@ const GoalManagement = () => {
                   value={newGoal.status}
                   onChange={handleInputChange}
                   label="Status"
+                  disabled // disable manual status editing as status is managed by tasks
                 >
                   <MenuItem value="scheduled">Scheduled</MenuItem>
                   <MenuItem value="in-progress">In Progress</MenuItem>
@@ -489,7 +560,6 @@ const GoalManagement = () => {
         <DialogContent>
           <Typography>
             Are you sure you want to delete the goal "{goalToDelete?.projectTitle}"?
-            This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -507,7 +577,6 @@ const GoalManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Success and Error Notifications */}
       <Snackbar
         open={!!successMessage}
         autoHideDuration={6000}
