@@ -20,12 +20,13 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
+import Diversity3Icon from '@mui/icons-material/Diversity3';
 import { useRouter } from "next/router";
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/hr" },
   { text: "Department", icon: <DomainIcon />, path: "/hr/department" },
-  { text: "Team", icon: <DomainIcon />, path: "/hr/team" },
+  { text: "Team", icon: <Diversity3Icon />, path: "/hr/team" },
   { text: "User Management", icon: <PeopleIcon />, path: "/hr/user-management" },
   { text: "Goal Review", icon: <EventNoteIcon />, path: "/hr/goalReviews" },
   { text: "Task Review", icon: <RecyclingIcon />, path: "/hr/taskReviews" },

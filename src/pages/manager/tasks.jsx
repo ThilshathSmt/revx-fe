@@ -27,10 +27,11 @@ import {
   FormHelperText,
   Skeleton,
   CircularProgress,
-  Pagination
+  TablePagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import ManagerLayout from "../../components/ManagerLayout";
 
 // Utility function for minimum delay
@@ -73,8 +74,14 @@ const TaskManagement = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [teamEmployees, setTeamEmployees] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [tasksPerPage] = useState(5); // Number of tasks per page
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  // New state for viewing tasks dialog (view task details for completed tasks)
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -139,13 +146,13 @@ const TaskManagement = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       });
       const teamId = goalResponse.data?.teamId._id;
-      
+
       if (!teamId) {
         console.error("No team associated with this project.");
         setTeamEmployees([]);
         return;
       }
-  
+
       const teamResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
@@ -156,14 +163,13 @@ const TaskManagement = () => {
     }
   };
 
-  // Pagination logic
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = tasks.slice(indexOfFirstTask, indexOfLastTask);
-  const totalPages = Math.ceil(tasks.length / tasksPerPage);
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
-  const handlePageChange = (event, value) => {
-    setCurrentPage(value);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const validateForm = () => {
@@ -189,6 +195,17 @@ const TaskManagement = () => {
     if (!newTask.startDate) {
       errors.startDate = "Start date is required";
       valid = false;
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const selectedDate = new Date(newTask.startDate);
+      selectedDate.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        errors.startDate = "Start date cannot be in the past";
+        valid = false;
+      }
     }
 
     if (!newTask.dueDate) {
@@ -236,7 +253,6 @@ const TaskManagement = () => {
     }
   };
 
-  // Open the update dialog with selected task data
   const handleUpdateTask = (task) => {
     setNewTask({
       projectId: task.projectId?._id || "",
@@ -253,22 +269,36 @@ const TaskManagement = () => {
     setOpen(true);
   };
 
-  // Delete a task
-  const handleDeleteTask = async (taskId) => {
+  const handleDeleteClick = (taskId) => {
+    const task = tasks.find(t => t._id === taskId);
+    setTaskToDelete(task);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteTask = async () => {
     try {
       setActionLoading(true);
       await withMinimumDelay(async () => {
-        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/${taskId}`, {
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/${taskToDelete._id}`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setSuccessMessage("Task deleted successfully!");
-        fetchTasks();
+        setTasks(tasks.filter(t => t._id !== taskToDelete._id));
+        setOpenDeleteDialog(false);
       });
     } catch (err) {
       setError("Failed to delete task");
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // New: Handle View Task details on completed tasks
+  const [openViewTaskDialog, setOpenViewTaskDialog] = useState(false);
+
+  const handleViewTask = (task) => {
+    setSelectedTask(task);
+    setOpenViewTaskDialog(true);
   };
 
   const handleInputChange = (e) => {
@@ -311,19 +341,18 @@ const TaskManagement = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case "scheduled":
-        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" };
       case "in-progress":
-        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" };
       case "completed":
-        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" };
       default:
         return {};
     }
   };
 
-  // Loading skeleton for table rows
   const renderLoadingSkeletons = () => {
-    return Array.from({ length: tasksPerPage }).map((_, index) => (
+    return Array.from({ length: rowsPerPage }).map((_, index) => (
       <TableRow key={index}>
         <TableCell><Skeleton variant="text" width="80%" /></TableCell>
         <TableCell><Skeleton variant="text" width="70%" /></TableCell>
@@ -348,21 +377,20 @@ const TaskManagement = () => {
         Task Management
       </Typography>
 
-      <Button 
-        variant="contained" 
-        color="primary" 
-        onClick={() => setOpen(true)} 
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={() => setOpen(true)}
         style={{ marginBottom: "20px" }}
         disabled={loading}
       >
         {isUpdate ? "Update Task" : "Create Task"}
       </Button>
 
-      {/* Tasks Table */}
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Task Title</strong></TableCell>
               <TableCell><strong>Project</strong></TableCell>
               <TableCell><strong>Start Date</strong></TableCell>
@@ -377,56 +405,72 @@ const TaskManagement = () => {
             {loading ? (
               renderLoadingSkeletons()
             ) : (
-              currentTasks.map((task) => (
-                <TableRow key={task._id}>
-                  <TableCell>{task.taskTitle}</TableCell>
-                  <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
-                  <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <span style={getStatusStyle(task.status)}>{task.status}</span>
-                  </TableCell>
-                  <TableCell>{task.priority}</TableCell>
-                  <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                      <Button 
-                        variant="outlined" 
-                        color="primary" 
-                        onClick={() => handleUpdateTask(task)}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
-                      </Button>
-                      <Button 
-                        variant="outlined" 
-                        color="error" 
-                        onClick={() => handleDeleteTask(task._id)}
-                        disabled={actionLoading}
-                      >
-                        {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
-                      </Button>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
+              tasks
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((task) => (
+                  <TableRow key={task._id} hover>
+                    <TableCell>{task.taskTitle}</TableCell>
+                    <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
+                    <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span style={getStatusStyle(task.status)}>{task.status}</span>
+                    </TableCell>
+                    <TableCell>{task.priority}</TableCell>
+                    <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                        {task.status === "completed" ? (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleViewTask(task)}
+                            disabled={actionLoading}
+                            startIcon={<RemoveRedEyeIcon />}
+                            size="small"
+                          >
+                            View
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleUpdateTask(task)}
+                            disabled={actionLoading}
+                            size="small"
+                          >
+                            {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                          </Button>
+                        )}
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleDeleteClick(task._id)}
+                          disabled={actionLoading}
+                          size="small"
+                        >
+                          {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Pagination - Only show when not loading */}
-      {!loading && tasks.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={totalPages}
-            page={currentPage}
-            onChange={handlePageChange}
-            color="primary"
-          />
-        </Box>
-      )}
+      <TablePagination
+        component="div"
+        count={tasks.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
 
+      {/* Create / Update Task Dialog */}
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Task" : "Create New Task"}</DialogTitle>
         <DialogContent>
@@ -444,9 +488,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" error={!!formErrors.projectId} disabled={actionLoading}>
             <InputLabel>Project</InputLabel>
-            <Select 
-              name="projectId" 
-              value={newTask.projectId} 
+            <Select
+              name="projectId"
+              value={newTask.projectId}
               onChange={handleInputChange}
             >
               {goals.map((goal) => (
@@ -486,9 +530,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" disabled={actionLoading}>
             <InputLabel>Priority</InputLabel>
-            <Select 
-              name="priority" 
-              value={newTask.priority} 
+            <Select
+              name="priority"
+              value={newTask.priority}
               onChange={handleInputChange}
             >
               {["low", "medium", "high"].map((priority) => (
@@ -499,9 +543,9 @@ const TaskManagement = () => {
 
           <FormControl fullWidth margin="dense" error={!!formErrors.employeeId} disabled={actionLoading}>
             <InputLabel>Employee</InputLabel>
-            <Select 
-              name="employeeId" 
-              value={newTask.employeeId} 
+            <Select
+              name="employeeId"
+              value={newTask.employeeId}
               onChange={handleInputChange}
             >
               {teamEmployees.map((employee) => (
@@ -526,8 +570,8 @@ const TaskManagement = () => {
 
         <DialogActions>
           <Button onClick={resetForm} color="primary" disabled={actionLoading}>Cancel</Button>
-          <Button 
-            onClick={handleSaveTask} 
+          <Button
+            onClick={handleSaveTask}
             color="primary"
             disabled={actionLoading}
           >
@@ -542,7 +586,67 @@ const TaskManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Success and Error Notifications */}
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the task "{taskToDelete?.taskTitle}"?
+            <br />
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteTask}
+            color="error"
+            variant="contained"
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={20} /> : null}
+          >
+            {actionLoading ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Task Dialog for Completed Tasks */}
+      <Dialog
+        open={openViewTaskDialog}
+        onClose={() => setOpenViewTaskDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Task Details</DialogTitle>
+        <DialogContent dividers>
+          {selectedTask ? (
+            <>
+              <Typography variant="h6" gutterBottom>{selectedTask.taskTitle}</Typography>
+              <Typography><strong>Project:</strong> {selectedTask.projectId?.projectTitle || "N/A"}</Typography>
+              <Typography><strong>Start Date:</strong> {new Date(selectedTask.startDate).toLocaleDateString()}</Typography>
+              <Typography><strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}</Typography>
+              <Typography><strong>Status:</strong> {selectedTask.status}</Typography>
+              <Typography><strong>Priority:</strong> {selectedTask.priority}</Typography>
+              <Typography><strong>Employee:</strong> {selectedTask.employeeId?.username || "N/A"}</Typography>
+              <Typography sx={{ mt: 2 }}><strong>Description:</strong> {selectedTask.description || "No Description"}</Typography>
+              <Typography color="success.main" sx={{ mt: 3, fontWeight: "bold" }}>
+                🎉 Task completed!
+              </Typography>
+            </>
+          ) : (
+            <CircularProgress />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenViewTaskDialog(false)} color="primary">Close</Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={!!successMessage}
         autoHideDuration={6000}

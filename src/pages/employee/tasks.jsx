@@ -20,9 +20,11 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Box,
+  TablePagination,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import Box from "@mui/material/Box";
 import EmployeeLayout from "../../components/EmployeeLayout";
 
 const TaskManagement = () => {
@@ -33,6 +35,8 @@ const TaskManagement = () => {
   const [open, setOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [updatedStatus, setUpdatedStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const router = useRouter();
 
@@ -48,6 +52,7 @@ const TaskManagement = () => {
   // Fetch tasks assigned to the logged-in employee
   const fetchTasks = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
@@ -94,18 +99,44 @@ const TaskManagement = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case "scheduled":
-        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" }; // Light gray
+        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" };
       case "in-progress":
-        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" }; // Light blue
+        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" };
       case "completed":
-        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" }; // Light green
+        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" };
       default:
         return {};
     }
   };
 
-  if (loading) return <Typography variant="h6">Loading tasks...</Typography>;
-  if (error) return <Typography variant="h6">{error}</Typography>;
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  if (loading) {
+    return (
+      <EmployeeLayout>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
+        </Box>
+      </EmployeeLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmployeeLayout>
+        <Typography variant="h6" color="error" sx={{ textAlign: 'center', mt: 2 }}>
+          {error}
+        </Typography>
+      </EmployeeLayout>
+    );
+  }
 
   return (
     <EmployeeLayout>
@@ -128,32 +159,49 @@ const TaskManagement = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {tasks.map((task) => (
-              <TableRow key={task._id}>
-                <TableCell>{task.taskTitle}</TableCell>
-                <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
-                <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+            {tasks
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((task) => (
+                <TableRow key={task._id}>
+                  <TableCell>{task.taskTitle}</TableCell>
+                  <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
+                  <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
 
-                {/* Status Cell with Conditional Styling */}
-                <TableCell>
-                  <span style={getStatusStyle(task.status)}>{task.status}</span>
-                </TableCell>
+                  {/* Status Cell with Conditional Styling */}
+                  <TableCell>
+                    <span style={getStatusStyle(task.status)}>{task.status}</span>
+                  </TableCell>
 
-                <TableCell>{task.description}</TableCell>
-                <TableCell>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                    {/* Edit Button */}
-                    <Button variant="outlined" color="primary" onClick={() => handleEditStatus(task)}>
-                      <EditIcon />
-                    </Button>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+                  <TableCell>{task.description}</TableCell>
+                  <TableCell>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                      {/* Edit Button */}
+                      <Button 
+                        variant="outlined" 
+                        color="primary" 
+                        onClick={() => handleEditStatus(task)}
+                      >
+                        <EditIcon />
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Pagination */}
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={tasks.length}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
 
       {/* Update Status Dialog */}
       <Dialog open={open} onClose={handleCloseDialog}>
@@ -162,7 +210,11 @@ const TaskManagement = () => {
           {/* Status Dropdown */}
           <FormControl fullWidth margin="dense">
             <InputLabel>Status</InputLabel>
-            <Select value={updatedStatus} onChange={(e) => setUpdatedStatus(e.target.value)}>
+            <Select 
+              value={updatedStatus} 
+              onChange={(e) => setUpdatedStatus(e.target.value)}
+              label="Status"
+            >
               {["scheduled", "in-progress", "completed"].map((status) => (
                 <MenuItem key={status} value={status}>{status}</MenuItem>
               ))}
@@ -173,7 +225,9 @@ const TaskManagement = () => {
         {/* Dialog Actions */}
         <DialogActions>
           <Button onClick={handleCloseDialog} color="primary">Cancel</Button>
-          <Button onClick={handleSaveStatus} color="primary">Save</Button>
+          <Button onClick={handleSaveStatus} color="primary" variant="contained">
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </EmployeeLayout>

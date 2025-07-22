@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import axios from 'axios';
 import {
   Box,
@@ -10,6 +11,9 @@ import {
   Avatar,
   CircularProgress,
   Snackbar,
+  Alert,
+  snackbarOpen,
+  snackbarMessage
 } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import HRLayout from '../../components/HRLayout';
@@ -33,46 +37,96 @@ const taskData = [
 
 const COLORS = ['#4caf50', '#2196f3', '#f44336'];
 
+
 const HRDashboard = () => {
+  const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [hrDetails, setHRDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      setError('User is not authenticated.');
+      setError('User is not authenticated. Redirecting to login...');
       setLoading(false);
+      router.push('/auth/signin');
       return;
     }
 
     const fetchHRDetails = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${user.id}`, {
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-        setHRDetails(response.data);
+        setLoading(true);
+        
+        // Fetch user details
+        const [userResponse, profilePicResponse] = await Promise.all([
+          axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${user.id}`, {
+            headers: { Authorization: `Bearer ${user.token}` },
+          }),
+          axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`, {
+            headers: { Authorization: `Bearer ${user.token}` },
+            responseType: 'blob',
+          }).catch(() => null) // Gracefully handle missing profile picture
+        ]);
 
-        const profilePicResponse = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`, {
-          headers: { Authorization: `Bearer ${user.token}` },
-          responseType: 'blob',
-        });
-        setImagePreview(URL.createObjectURL(profilePicResponse.data));
+        setHRDetails(userResponse.data);
+        
+        if (profilePicResponse) {
+          setImagePreview(URL.createObjectURL(profilePicResponse.data));
+        }
       } catch (err) {
-        setError('Failed to fetch HR details.');
+        setError(err.response?.data?.message || 'Failed to fetch HR details');
+        setSnackbar({
+          open: true,
+          message: 'Failed to fetch data',
+          severity: 'error',
+        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchHRDetails();
-  }, [user, isAuthenticated]);
+  }, [user, isAuthenticated, router]);
 
-  if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 5 }} />;
-  if (error) return <Typography color="error">{error}</Typography>;
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column'
+      }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
 
   return (
     <HRLayout>

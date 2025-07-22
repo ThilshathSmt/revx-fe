@@ -19,14 +19,14 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import { useRouter } from "next/router";
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/manager" },
   { text: "Goal Management", icon: <FlagIcon />, path: "/manager/goals" },
-  { text: "Task Management", icon: <AssignmentIcon />, path: "/manager/tasks" },
+  { text: "Task Management", icon: <PlaylistAddIcon />, path: "/manager/tasks" },
   { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/manager/goalReviews" },
-  { text: "Team Performance", icon: <TrendingUpIcon />, path: "/manager/performance" },
   { text: "Feedback", icon: <BarChartIcon />, path: "/manager/feedback" },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile" },
 ];

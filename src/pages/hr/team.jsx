@@ -75,6 +75,8 @@ const TeamManagement = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [teamsPerPage] = useState(9);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -215,11 +217,19 @@ const TeamManagement = () => {
     setOpen(true);
   };
 
-  const handleDeleteTeam = async (teamId) => {
+  const handleDeleteClick = (team) => {
+    setTeamToDelete(team);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!teamToDelete) return;
+    
     try {
       setActionLoading(true);
+      setDeleteDialogOpen(false);
       await withMinimumDelay(async () => {
-        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamId}`, {
+        await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${teamToDelete._id}`, {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         setSuccessMessage("Team deleted successfully!");
@@ -229,7 +239,13 @@ const TeamManagement = () => {
       setError("Failed to delete team");
     } finally {
       setActionLoading(false);
+      setTeamToDelete(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setTeamToDelete(null);
   };
 
   const handleMemberChange = (event) => {
@@ -296,7 +312,7 @@ const TeamManagement = () => {
 
   return (
     <HRLayout>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+      <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', mb: 4 , color: "#15B2C0"}}>
         Team Management
       </Typography>
 
@@ -359,7 +375,7 @@ const TeamManagement = () => {
                     variant="outlined"
                     color="error"
                     size="small"
-                    onClick={() => handleDeleteTeam(team._id)}
+                    onClick={() => handleDeleteClick(team)}
                     startIcon={actionLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
                     disabled={actionLoading}
                   >
@@ -383,6 +399,7 @@ const TeamManagement = () => {
         />
       )}
 
+      {/* Team Form Dialog */}
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
         <DialogContent>
@@ -453,7 +470,6 @@ const TeamManagement = () => {
               <FormHelperText>{formErrors.members}</FormHelperText>
             )}
           </FormControl>
-
         </DialogContent>
         <DialogActions>
           <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
@@ -469,6 +485,28 @@ const TeamManagement = () => {
             ) : (
               "Create"
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the team "{teamToDelete?.teamName}"?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color="primary">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteTeam} 
+            color="error"
+            disabled={actionLoading}
+          >
+            {actionLoading ? <CircularProgress size={24} /> : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>

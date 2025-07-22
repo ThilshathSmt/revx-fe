@@ -21,8 +21,9 @@ const Profile = () => {
   const [openEditProfileDialog, setOpenEditProfileDialog] = useState(false);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [passwordError, setPasswordError] = useState('');   
   const [updatedUsername, setUpdatedUsername] = useState('');
   const [updatedEmail, setUpdatedEmail] = useState('');
   const router = useRouter();
@@ -133,44 +134,44 @@ const Profile = () => {
 
   const handleClosePasswordDialog = () => {
     setOpenPasswordDialog(false);
-    setUsername(''); // Clear username
-    setEmail(''); // Clear email
     setNewPassword(''); // Clear password fields
     setPasswordError('');
   };
 
   const handlePasswordReset = async () => {
-    if (!username || !email || !newPassword) {
-      setPasswordError('Username, email, and new password are required.');
-      return;
-    }
+  if (!currentPassword) {
+    setPasswordError('Current password is required.');
+    return;
+  }
+  if (!newPassword || newPassword.length < 8) {
+    setPasswordError('New password must be at least 8 characters long.');
+    return;
+  }
 
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/reset-password`,
-        {
-          username,
-          email,
-          newPassword,
+  try {
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/change-password`,
+      { currentPassword, newPassword },
+      {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        setSnackbarMessage('Password updated successfully');
-        setOpenSnackbar(true);
-        handleClosePasswordDialog();
       }
-    } catch (err) {
-      console.error('Error resetting password:', err);
-      setPasswordError('Failed to reset password.');
-    }
-  };
+    );
 
+    if (response.status === 200) {
+      setSnackbarMessage('Password updated successfully');
+      setOpenSnackbar(true);
+      handleClosePasswordDialog();
+      setPasswordError('');
+      setCurrentPassword('');
+      setNewPassword('');
+    }
+  } catch (err) {
+    console.error('Error resetting password:', err);
+    setPasswordError(err.response?.data?.message || 'Failed to reset password.');
+  }
+};
   const handleOpenEditProfileDialog = () => {
     setUpdatedUsername(userDetails.username);
     setUpdatedEmail(userDetails.email);
@@ -339,47 +340,41 @@ const Profile = () => {
         </MuiAlert>
       </Snackbar>
 
-      {/* Reset Password Dialog */}
       <Dialog open={openPasswordDialog} onClose={handleClosePasswordDialog}>
-        <DialogTitle>Reset Password</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Username"
-            fullWidth
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            margin="normal"
-            required
-          />
-          <TextField
-            label="Email"
-            fullWidth
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-            required
-          />
-          <TextField
-            label="New Password"
-            type="password"
-            fullWidth
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            margin="normal"
-            required
-            error={!!passwordError}
-            helperText={passwordError}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClosePasswordDialog} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handlePasswordReset} color="primary">
-            Reset Password
-          </Button>
-        </DialogActions>
-      </Dialog>
+  <DialogTitle>Reset Password</DialogTitle>
+  <DialogContent>
+    <TextField
+      label="Current Password"
+      type="password"
+      fullWidth
+      value={currentPassword}
+      onChange={(e) => setCurrentPassword(e.target.value)}
+      margin="normal"
+      required
+      error={!!passwordError && !currentPassword}
+      helperText={!!passwordError && !currentPassword ? passwordError : ''}
+    />
+    <TextField
+      label="New Password"
+      type="password"
+      fullWidth
+      value={newPassword}
+      onChange={(e) => setNewPassword(e.target.value)}
+      margin="normal"
+      required
+      error={!!passwordError && !!newPassword && newPassword.length < 8}
+      helperText={!!passwordError && newPassword.length < 8 ? passwordError : ''}
+    />
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={handleClosePasswordDialog} color="primary">
+      Cancel
+    </Button>
+    <Button onClick={handlePasswordReset} color="primary">
+      Reset Password
+    </Button>
+  </DialogActions>
+</Dialog>
 
       {/* Edit Profile Dialog */}
       <Dialog open={openEditProfileDialog} onClose={handleCloseEditProfileDialog}>
