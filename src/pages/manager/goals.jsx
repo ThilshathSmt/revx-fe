@@ -3,6 +3,10 @@ import axios from "axios";
 import { useAuth } from "../../hooks/useAuth";
 import { useRouter } from "next/router";
 import {
+  Container,
+  Grid,
+  TextField,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -15,16 +19,14 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Button,
-  Select,
-  MenuItem,
   FormControl,
   InputLabel,
+  Select,
+  MenuItem,
   Box,
   Snackbar,
   Alert,
   FormHelperText,
-  CircularProgress,
   Skeleton,
   CircularProgress,
   TablePagination
@@ -47,7 +49,6 @@ const withMinimumDelay = async (fn, minDelay = 1000) => {
 const GoalManagement = () => {
   const { user } = useAuth();
   const [goals, setGoals] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,10 +76,6 @@ const GoalManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const router = useRouter();
-  
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   useEffect(() => {
     if (!user || user.role !== "manager") {
@@ -94,7 +91,6 @@ const GoalManagement = () => {
       await withMinimumDelay(async () => {
         await Promise.all([
           fetchGoals(),
-          fetchTasks(),
           fetchManagedTeams()
         ]);
       });
@@ -158,17 +154,6 @@ const GoalManagement = () => {
     } catch (err) {
       setError("Failed to fetch goals");
       throw err;
-    }
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/all`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setTasks(response.data);
-    } catch (err) {
-      console.error("Failed to fetch tasks:", err);
     }
   };
 
@@ -259,15 +244,12 @@ const GoalManagement = () => {
           ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${selectedGoal._id}`
           : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/create`;
 
-        const method = isUpdate ? "put" : "post";
-
         await axios({
-          method,
+          method: isUpdate ? "put" : "post",
           url,
           data: { ...newGoal, managerId: user.id },
           headers: { Authorization: `Bearer ${user.token}` },
         });
-        
         setSuccessMessage(isUpdate ? "Goal updated successfully!" : "Goal created successfully!");
         await fetchGoals();
         resetForm();
@@ -363,10 +345,10 @@ const GoalManagement = () => {
         <TableCell><Skeleton variant="text" width="80%" /></TableCell>
         <TableCell><Skeleton variant="text" width="60%" /></TableCell>
         <TableCell><Skeleton variant="text" width="60%" /></TableCell>
-        <TableCell><Skeleton variant="text" width="50%" /></TableCell>
-        <TableCell><Skeleton variant="text" width="50%" /></TableCell>
+        <TableCell><Skeleton variant="text" width="70%" /></TableCell>
+        <TableCell><Skeleton variant="text" width="60%" /></TableCell>
         <TableCell>
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <Skeleton variant="circular" width={40} height={40} />
             <Skeleton variant="circular" width={40} height={40} />
           </Box>
@@ -377,15 +359,15 @@ const GoalManagement = () => {
 
   return (
     <ManagerLayout>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4 }}>
+      <Typography variant="h3" gutterBottom sx={{ textAlign: "center", color: "#15B2C0" }}>
         Goal Management
       </Typography>
 
-      <Button 
-        variant="contained" 
-        onClick={() => setOpen(true)} 
-        sx={{ mb: 3 }} 
-        disabled={actionLoading || loading}
+      <Button
+        variant="contained"
+        onClick={() => setOpen(true)}
+        sx={{ mb: 3 }}
+        disabled={loading}
       >
         {isUpdate ? "Update Goal" : "Create New Goal"}
       </Button>
@@ -393,7 +375,7 @@ const GoalManagement = () => {
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
+            <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
               <TableCell><strong>Project Title</strong></TableCell>
               <TableCell><strong>Start Date</strong></TableCell>
               <TableCell><strong>Due Date</strong></TableCell>
@@ -557,8 +539,8 @@ const GoalManagement = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
-          <Button 
-            onClick={handleSaveGoal} 
+          <Button
+            onClick={handleSaveGoal}
             variant="contained"
             disabled={actionLoading}
           >
@@ -581,10 +563,12 @@ const GoalManagement = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>Cancel</Button>
-          <Button 
-            onClick={handleDeleteGoal} 
-            color="error" 
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteGoal}
+            color="error"
             variant="contained"
             disabled={actionLoading}
           >
