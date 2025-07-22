@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, IconButton, Badge, InputBase, Box, Button, Avatar } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Badge,
+  InputBase,
+  Box,
+  Button,
+  Avatar
+} from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
+import { signOut } from 'next-auth/react';
+
 import { useNotificationCount } from '../hooks/useNotifications';
 import HRNotificationPage from '../pages/hr/notification';
 
@@ -19,15 +32,24 @@ const Navbar = () => {
     setNotificationAnchor(null);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut({ redirect: false }); // silent sign out
+      router.push('/auth/signin'); // redirect manually
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    }
+  };
+
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
-        {/* Logo Section aligned to the left */}
+        {/* Logo Section */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar src="/images/logo.png" alt="Logo" style={{ height: 60, width: 60 }} />
+          <Avatar src="/images/logo.png" alt="Logo" sx={{ height: 60, width: 60 }} />
         </Box>
 
-        {/* Right-Aligned Elements (Search Bar, Notifications, Sign Out) */}
+        {/* Right Section */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {/* Search Bar */}
           <Box sx={{
@@ -46,9 +68,9 @@ const Navbar = () => {
             />
           </Box>
 
-          {/* Notification Icon with Badge */}
-          <IconButton 
-            color="inherit" 
+          {/* Notification Icon */}
+          <IconButton
+            color="inherit"
             sx={{ marginRight: 2 }}
             onClick={handleNotificationClick}
             id="notification-button"
@@ -59,14 +81,36 @@ const Navbar = () => {
           </IconButton>
 
           {/* Notification Popup */}
-          <HRNotificationPage 
+          <HRNotificationPage
             isPopup={true}
             anchorEl={notificationAnchor}
             onClose={handleCloseNotification}
           />
 
           {/* Sign Out Button */}
-          <Button color="inherit" sx={{ color: 'white' }} onClick={() => router.push('/auth/signout')}>
+          <Button
+            component={motion.button}
+            whileHover={{
+              scale: 1.05,
+              backgroundColor: 'rgba(255,255,255,0.2)'
+            }}
+            whileTap={{ scale: 0.95 }}
+            color="inherit"
+            startIcon={<PowerSettingsNewIcon />}
+            onClick={handleSignOut}
+            sx={{
+              px: 2,
+              py: 1,
+              borderRadius: '8px',
+              fontWeight: 600,
+              letterSpacing: '0.5px',
+              textTransform: 'none',
+              display: { xs: 'none', sm: 'flex' },
+              '& .MuiButton-startIcon': {
+                marginRight: '6px'
+              }
+            }}
+          >
             Sign Out
           </Button>
         </Box>
