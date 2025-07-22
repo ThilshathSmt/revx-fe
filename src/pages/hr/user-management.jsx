@@ -63,7 +63,7 @@ const UserManagement = () => {
 
   useEffect(() => {
     if (!user || user.role !== "hr") {
-      router.push("/");
+      router.push("/hr/user-management");
     } else {
       fetchDepartments();
     }
