@@ -40,6 +40,7 @@ import HRLayout from "../../components/HRLayout";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 
+
 // Utility function for minimum delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const withMinimumDelay = async (fn, minDelay = 1000) => {
@@ -50,6 +51,7 @@ const withMinimumDelay = async (fn, minDelay = 1000) => {
   await delay(remaining);
   return result;
 };
+
 
 const TeamManagement = () => {
   const { user } = useAuth();
@@ -69,6 +71,13 @@ const TeamManagement = () => {
     departmentId: "",
     members: ""
   });
+  // Add state for department filter dropdown
+  const [filterDepartmentId, setFilterDepartmentId] = useState("");
+  // Filtered teams based on department filter
+  const filteredTeams = filterDepartmentId
+    ? teams.filter(team => team.departmentId?._id === filterDepartmentId)
+    : teams;
+
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -79,6 +88,7 @@ const TeamManagement = () => {
   const [teamToDelete, setTeamToDelete] = useState(null);
   const router = useRouter();
 
+
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/");
@@ -86,6 +96,7 @@ const TeamManagement = () => {
       fetchInitialData();
     }
   }, [user, router]);
+
 
   const fetchInitialData = async () => {
     try {
@@ -104,13 +115,17 @@ const TeamManagement = () => {
     }
   };
 
+
+  // Pagination based on filteredTeams now
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
-  const currentTeams = teams.slice(indexOfFirstTeam, indexOfLastTeam);
+  const currentTeams = filteredTeams.slice(indexOfFirstTeam, indexOfLastTeam);
+
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
   };
+
 
   const fetchTeams = async () => {
     try {
@@ -123,6 +138,7 @@ const TeamManagement = () => {
       throw err;
     }
   };
+
 
   const fetchEmployees = async () => {
     try {
@@ -137,6 +153,7 @@ const TeamManagement = () => {
     }
   };
 
+
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -149,6 +166,7 @@ const TeamManagement = () => {
     }
   };
 
+
   const validateForm = () => {
     let valid = true;
     const newErrors = {
@@ -157,27 +175,33 @@ const TeamManagement = () => {
       members: ""
     };
 
+
     if (!newTeam.teamName.trim()) {
       newErrors.teamName = "Team name is required";
       valid = false;
     }
+
 
     if (!newTeam.departmentId) {
       newErrors.departmentId = "Department is required";
       valid = false;
     }
 
+
     if (newTeam.members.length === 0) {
       newErrors.members = "At least one member is required";
       valid = false;
     }
 
+
     setFormErrors(newErrors);
     return valid;
   };
 
+
   const handleSaveTeam = async () => {
     if (!validateForm()) return;
+
 
     setActionLoading(true);
     try {
@@ -185,6 +209,7 @@ const TeamManagement = () => {
         const url = isUpdate
           ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
           : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/create`;
+
 
         await axios({
           method: isUpdate ? "put" : "post",
@@ -206,6 +231,7 @@ const TeamManagement = () => {
     }
   };
 
+
   const handleUpdateTeam = (team) => {
     setNewTeam({
       teamName: team.teamName,
@@ -217,14 +243,16 @@ const TeamManagement = () => {
     setOpen(true);
   };
 
+
   const handleDeleteClick = (team) => {
     setTeamToDelete(team);
     setDeleteDialogOpen(true);
   };
 
+
   const handleDeleteTeam = async () => {
     if (!teamToDelete) return;
-    
+
     try {
       setActionLoading(true);
       setDeleteDialogOpen(false);
@@ -243,10 +271,12 @@ const TeamManagement = () => {
     }
   };
 
+
   const handleCancelDelete = () => {
     setDeleteDialogOpen(false);
     setTeamToDelete(null);
   };
+
 
   const handleMemberChange = (event) => {
     const { value } = event.target;
@@ -260,10 +290,12 @@ const TeamManagement = () => {
     });
   };
 
+
   const handleCloseSnackbar = () => {
     setError(null);
     setSuccessMessage(null);
   };
+
 
   const resetForm = () => {
     setNewTeam({
@@ -312,18 +344,43 @@ const TeamManagement = () => {
 
   return (
     <HRLayout>
-      <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', mb: 4 , color: "#15B2C0"}}>
+      <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', mb: 4, color: "#15B2C0" }}>
         Team Management
       </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 130, mb: 3 }}>
+        <Button
+          variant="contained"
+          onClick={() => setOpen(true)}
+          disabled={loading}
+        >
+          {isUpdate ? "Update Team" : "Create New Team"}
+        </Button>
 
-      <Button
-        variant="contained"
-        onClick={() => setOpen(true)}
-        sx={{ mb: 3 }}
-        disabled={loading}
-      >
-        {isUpdate ? "Update Team" : "Create New Team"}
-      </Button>
+        {/* Department Filter Dropdown */}
+        <FormControl sx={{ width: '300px' }} fullWidth>
+          <InputLabel id="department-filter-label">Filter by Department</InputLabel>
+          <Select
+            labelId="department-filter-label"
+            value={filterDepartmentId}
+            label="Filter by Department"
+            onChange={(e) => {
+              setFilterDepartmentId(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <MenuItem value="">
+              <em>All Departments</em>
+            </MenuItem>
+            {departments.map((department) => (
+              <MenuItem key={department._id} value={department._id}>
+                {department.departmentName}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+
 
       {/* Team Cards View */}
       <Grid container spacing={3}>
@@ -391,7 +448,7 @@ const TeamManagement = () => {
       {/* Pagination - Only show when not loading */}
       {!loading && (
         <Pagination
-          count={Math.ceil(teams.length / teamsPerPage)}
+          count={Math.ceil(filteredTeams.length / teamsPerPage)}
           page={currentPage}
           onChange={handlePageChange}
           color="primary"
@@ -444,7 +501,14 @@ const TeamManagement = () => {
             <Select
               multiple
               value={newTeam.members}
-              onChange={handleMemberChange}
+              onChange={(e) => {
+                const { value } = e.target;
+                setNewTeam({
+                  ...newTeam,
+                  members: typeof value === 'string' ? value.split(',') : value,
+                });
+                setFormErrors({ ...formErrors, members: "" });
+              }}
               renderValue={(selected) => (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                   {selected.map((value) => {
@@ -501,8 +565,8 @@ const TeamManagement = () => {
           <Button onClick={handleCancelDelete} color="primary">
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteTeam} 
+          <Button
+            onClick={handleDeleteTeam}
             color="error"
             disabled={actionLoading}
           >
