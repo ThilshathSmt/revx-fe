@@ -32,6 +32,7 @@ import {
   TablePagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ManagerLayout from "../../components/ManagerLayout";
 
@@ -76,6 +77,11 @@ const GoalManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const router = useRouter();
+
+  // New state for viewing tasks dialog
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [tasksForView, setTasksForView] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== "manager") {
@@ -275,6 +281,23 @@ const GoalManagement = () => {
     setOpen(true);
   };
 
+  const handleViewGoal = async (goal) => {
+    setLoadingTasks(true);
+    setOpenViewDialog(true);
+    try {
+      const tasksRes = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/project/${goal._id}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setTasksForView(tasksRes.data);
+    } catch (err) {
+      setError("Failed to fetch tasks");
+      setTasksForView([]);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
   const handleDeleteGoal = async () => {
     try {
       setActionLoading(true);
@@ -329,11 +352,11 @@ const GoalManagement = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case "scheduled":
-        return { backgroundColor: "#d3d3d3", borderRadius: "4px", padding: "4px 8px" };
+        return { backgroundColor: "#d3d3d3", borderRadius: "4px", padding: "10px" };
       case "in-progress":
-        return { backgroundColor: "#add8e6", borderRadius: "4px", padding: "4px 8px" };
+        return { backgroundColor: "#add8e6", borderRadius: "4px", padding: "10px" };
       case "completed":
-        return { backgroundColor: "#90ee90", borderRadius: "4px", padding: "4px 8px" };
+        return { backgroundColor: "#90ee90", borderRadius: "4px", padding: "10px" };
       default:
         return {};
     }
@@ -403,13 +426,25 @@ const GoalManagement = () => {
                     <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                          variant="outlined"
-                          onClick={() => handleUpdateGoal(goal)}
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
-                        </Button>
+                        {goal.status === "completed" ? (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleViewGoal(goal)}
+                            disabled={actionLoading}
+                            startIcon={<RemoveRedEyeIcon />}
+                          >
+                            View
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outlined"
+                            onClick={() => handleUpdateGoal(goal)}
+                            disabled={actionLoading}
+                          >
+                            {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                          </Button>
+                        )}
                         <Button
                           variant="outlined"
                           color="error"
@@ -440,6 +475,7 @@ const GoalManagement = () => {
         rowsPerPageOptions={[5, 10, 20, 50]}
       />
 
+      {/* Create/Edit Goal Dialog */}
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Goal" : "Create New Goal"}</DialogTitle>
         <DialogContent>
@@ -555,6 +591,7 @@ const GoalManagement = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
@@ -574,6 +611,55 @@ const GoalManagement = () => {
           >
             {actionLoading ? <CircularProgress size={24} /> : "Delete"}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Tasks Dialog for Completed Goals */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} fullWidth maxWidth="md">
+        <DialogTitle>Tasks for Goal: {selectedGoal?.projectTitle}</DialogTitle>
+        <DialogContent dividers>
+          {loadingTasks ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : tasksForView.length === 0 ? (
+            <Typography variant="body1">No tasks found for this goal.</Typography>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table size="small" aria-label="tasks table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Task Title</strong></TableCell>
+                    <TableCell><strong>Start Date</strong></TableCell>
+                    <TableCell><strong>Due Date</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                    <TableCell><strong>Priority</strong></TableCell>
+                    <TableCell><strong>Employee</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tasksForView.map(task => (
+                    <TableRow key={task._id}>
+                      <TableCell>{task.taskTitle}</TableCell>
+                      <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{task.status}</TableCell>
+                      <TableCell>{task.priority}</TableCell>
+                      <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" color="success.main">
+              All tasks are done 🎉
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 

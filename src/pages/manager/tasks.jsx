@@ -31,6 +31,7 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
 import ManagerLayout from "../../components/ManagerLayout";
 
 // Utility function for minimum delay
@@ -77,6 +78,10 @@ const TaskManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
+
+  // New state for viewing tasks dialog (view task details for completed tasks)
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -288,6 +293,14 @@ const TaskManagement = () => {
     }
   };
 
+  // New: Handle View Task details on completed tasks
+  const [openViewTaskDialog, setOpenViewTaskDialog] = useState(false);
+
+  const handleViewTask = (task) => {
+    setSelectedTask(task);
+    setOpenViewTaskDialog(true);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewTask({ ...newTask, [name]: value });
@@ -328,11 +341,11 @@ const TaskManagement = () => {
   const getStatusStyle = (status) => {
     switch (status) {
       case "scheduled":
-        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#d3d3d3", color: "#000", borderRadius: "8px", padding: "10px" };
       case "in-progress":
-        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#add8e6", color: "#000", borderRadius: "8px", padding: "10px" };
       case "completed":
-        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "4px" };
+        return { backgroundColor: "#90ee90", color: "#000", borderRadius: "8px", padding: "10px" };
       default:
         return {};
     }
@@ -407,19 +420,34 @@ const TaskManagement = () => {
                     <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          onClick={() => handleUpdateTask(task)}
-                          disabled={actionLoading}
-                        >
-                          {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
-                        </Button>
+                        {task.status === "completed" ? (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleViewTask(task)}
+                            disabled={actionLoading}
+                            startIcon={<RemoveRedEyeIcon />}
+                            size="small"
+                          >
+                            View
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            onClick={() => handleUpdateTask(task)}
+                            disabled={actionLoading}
+                            size="small"
+                          >
+                            {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                          </Button>
+                        )}
                         <Button
                           variant="outlined"
                           color="error"
                           onClick={() => handleDeleteClick(task._id)}
                           disabled={actionLoading}
+                          size="small"
                         >
                           {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
                         </Button>
@@ -442,6 +470,7 @@ const TaskManagement = () => {
         rowsPerPageOptions={[5, 10, 20, 50]}
       />
 
+      {/* Create / Update Task Dialog */}
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Task" : "Create New Task"}</DialogTitle>
         <DialogContent>
@@ -558,8 +587,8 @@ const TaskManagement = () => {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={openDeleteDialog} 
+      <Dialog
+        open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
       >
         <DialogTitle>Confirm Deletion</DialogTitle>
@@ -571,10 +600,7 @@ const TaskManagement = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={() => setOpenDeleteDialog(false)} 
-            disabled={actionLoading}
-          >
+          <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>
             Cancel
           </Button>
           <Button
@@ -586,6 +612,38 @@ const TaskManagement = () => {
           >
             {actionLoading ? 'Deleting...' : 'Delete'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Task Dialog for Completed Tasks */}
+      <Dialog
+        open={openViewTaskDialog}
+        onClose={() => setOpenViewTaskDialog(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Task Details</DialogTitle>
+        <DialogContent dividers>
+          {selectedTask ? (
+            <>
+              <Typography variant="h6" gutterBottom>{selectedTask.taskTitle}</Typography>
+              <Typography><strong>Project:</strong> {selectedTask.projectId?.projectTitle || "N/A"}</Typography>
+              <Typography><strong>Start Date:</strong> {new Date(selectedTask.startDate).toLocaleDateString()}</Typography>
+              <Typography><strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}</Typography>
+              <Typography><strong>Status:</strong> {selectedTask.status}</Typography>
+              <Typography><strong>Priority:</strong> {selectedTask.priority}</Typography>
+              <Typography><strong>Employee:</strong> {selectedTask.employeeId?.username || "N/A"}</Typography>
+              <Typography sx={{ mt: 2 }}><strong>Description:</strong> {selectedTask.description || "No Description"}</Typography>
+              <Typography color="success.main" sx={{ mt: 3, fontWeight: "bold" }}>
+                🎉 Task completed!
+              </Typography>
+            </>
+          ) : (
+            <CircularProgress />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenViewTaskDialog(false)} color="primary">Close</Button>
         </DialogActions>
       </Dialog>
 
