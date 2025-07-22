@@ -16,6 +16,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import { useRouter } from "next/router";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import HRLayout from '../../components/HRLayout';  // reuse layout or use HRLayout if available
 import { useAuth } from '../../hooks/useAuth';
@@ -28,6 +29,7 @@ const HRDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const router = useRouter();
 
   // Filters for Goals and Tasks
   const [selectedManager, setSelectedManager] = useState('');
@@ -37,8 +39,9 @@ const HRDashboard = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      setError('Please login to view dashboard');
+      setError('User is not authenticated. Redirecting to login...');
       setLoading(false);
+      router.push('/auth/signin');
       return;
     }
 
