@@ -1,22 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppBar, Toolbar, IconButton, Badge, InputBase, Box, Button, Avatar } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SearchIcon from '@mui/icons-material/Search';
-import { useRouter } from 'next/router'; // For redirecting after sign-out
-import { signOut } from 'next-auth/react'; // Import NextAuth's signOut function
-import { motion } from 'framer-motion';
-import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
+import { useRouter } from 'next/router';
+import { useNotificationCount } from '../hooks/useNotifications';
+import HRNotificationPage from '../pages/hr/notification';
 
 const Navbar = () => {
-  const router = useRouter(); // Initialize router to handle redirection after sign-out
-const handleSignOut = async () => {
-    try {
-      await signOut({ redirect: false });
-      router.push('/auth/signin');
-    } catch (error) {
-      console.error('Error during sign out:', error);
-    }
+  const router = useRouter();
+  const { unreadCount } = useNotificationCount();
+  const [notificationAnchor, setNotificationAnchor] = useState(null);
+
+  const handleNotificationClick = (event) => {
+    setNotificationAnchor(event.currentTarget);
   };
+
+  const handleCloseNotification = () => {
+    setNotificationAnchor(null);
+  };
+
   return (
     <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
@@ -45,36 +47,26 @@ const handleSignOut = async () => {
           </Box>
 
           {/* Notification Icon with Badge */}
-          <IconButton color="inherit" sx={{ marginRight: 2 }}>
-            <Badge badgeContent={3} color="error">
+          <IconButton 
+            color="inherit" 
+            sx={{ marginRight: 2 }}
+            onClick={handleNotificationClick}
+            id="notification-button"
+          >
+            <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
 
-      {/* Sign Out Button */}
-          <Button
-            component={motion.button}
-            whileHover={{ 
-              scale: 1.05,
-              backgroundColor: 'rgba(255,255,255,0.2)'
-            }}
-            whileTap={{ scale: 0.95 }}
-            color="inherit"
-            startIcon={<PowerSettingsNewIcon />}
-            onClick={handleSignOut}
-            sx={{
-              px: 2,
-              py: 1,
-              borderRadius: '8px',
-              fontWeight: 600,
-              letterSpacing: '0.5px',
-              textTransform: 'none',
-              display: { xs: 'none', sm: 'flex' },
-              '& .MuiButton-startIcon': {
-                marginRight: '6px'
-              }
-            }}
-          >
+          {/* Notification Popup */}
+          <HRNotificationPage 
+            isPopup={true}
+            anchorEl={notificationAnchor}
+            onClose={handleCloseNotification}
+          />
+
+          {/* Sign Out Button */}
+          <Button color="inherit" sx={{ color: 'white' }} onClick={() => router.push('/auth/signout')}>
             Sign Out
           </Button>
         </Box>

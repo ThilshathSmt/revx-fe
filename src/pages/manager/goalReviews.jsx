@@ -20,10 +20,11 @@ import {
   Box,
   CircularProgress,
   Chip,
-  Tooltip
+  Tooltip,
+  IconButton
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import HRLayout from "../../components/HRLayout";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import ManagerLayout from "../../components/ManagerLayout";
 
 const ManagerGoalReview = () => {
@@ -32,6 +33,7 @@ const ManagerGoalReview = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openReviewDialog, setOpenReviewDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedReview, setSelectedReview] = useState(null);
   const [managerReviewText, setManagerReviewText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +69,11 @@ const ManagerGoalReview = () => {
     setOpenReviewDialog(true);
   };
 
+  const handleViewReview = (review) => {
+    setSelectedReview(review);
+    setOpenViewDialog(true);
+  };
+
   const handleSubmitReview = async () => {
     if (!selectedReview || !managerReviewText) return;
     
@@ -83,9 +90,15 @@ const ManagerGoalReview = () => {
         }
       );
       
-      // Update the specific review in state
+      // Preserve the existing team and goal data when updating the review
+      const updatedReview = {
+        ...response.data.goalReview,
+        teamId: selectedReview.teamId, // Keep the original team data
+        goalId: selectedReview.goalId  // Keep the original goal data
+      };
+      
       setReviews(reviews.map(review => 
-        review._id === selectedReview._id ? response.data.goalReview : review
+        review._id === selectedReview._id ? updatedReview : review
       ));
       
       setOpenReviewDialog(false);
@@ -172,15 +185,25 @@ const ManagerGoalReview = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => handleOpenReview(review)}
-                      startIcon={<EditIcon />}
-                      disabled={review.status === "Completed"}
-                    >
-                      {review.status === "Completed" ? "Reviewed" : "Review"}
-                    </Button>
+                    {review.status === "Completed" ? (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleViewReview(review)}
+                        startIcon={<VisibilityIcon />}
+                      >
+                        View
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleOpenReview(review)}
+                        startIcon={<EditIcon />}
+                      >
+                        Review
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -197,6 +220,7 @@ const ManagerGoalReview = () => {
         </Table>
       </TableContainer>
 
+      {/* Review Submission Dialog */}
       <Dialog 
         open={openReviewDialog} 
         onClose={() => setOpenReviewDialog(false)} 
@@ -258,6 +282,68 @@ const ManagerGoalReview = () => {
             ) : (
               "Submit Review"
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Review Dialog */}
+      <Dialog 
+        open={openViewDialog} 
+        onClose={() => setOpenViewDialog(false)} 
+        fullWidth 
+        maxWidth="md"
+      >
+        <DialogTitle>
+          Review Details for {selectedReview?.goalId?.projectTitle || "Goal"}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Typography variant="subtitle1">
+              <strong>Team:</strong> {selectedReview?.teamId?.teamName || "N/A"}
+            </Typography>
+            <Typography variant="subtitle1">
+              <strong>Due Date:</strong>{" "}
+              {selectedReview?.dueDate
+                ? new Date(selectedReview.dueDate).toLocaleDateString()
+                : "N/A"}
+            </Typography>
+            <Typography variant="subtitle1">
+              <strong>Status:</strong>{" "}
+              <Chip 
+                label={selectedReview?.status || "N/A"} 
+                style={getStatusStyle(selectedReview?.status)} 
+              />
+            </Typography>
+            <Typography variant="subtitle1">
+              <strong>Submitted On:</strong>{" "}
+              {selectedReview?.submissionDate
+                ? new Date(selectedReview.submissionDate).toLocaleString()
+                : "N/A"}
+            </Typography>
+            <Typography variant="subtitle1">
+              <strong>HR Instructions:</strong>
+            </Typography>
+            <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
+              <Typography>
+                {selectedReview?.description || "No instructions provided"}
+              </Typography>
+            </Paper>
+            <Typography variant="subtitle1">
+              <strong>Your Review:</strong>
+            </Typography>
+            <Paper elevation={1} sx={{ p: 2 }}>
+              <Typography>
+                {selectedReview?.managerReview || "No review submitted"}
+              </Typography>
+            </Paper>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setOpenViewDialog(false)} 
+            color="primary"
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>
