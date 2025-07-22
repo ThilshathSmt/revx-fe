@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import ManagerLayout from '../../components/ManagerLayout';  // reuse layout or use HRLayout if available
+import HRLayout from '../../components/HRLayout';  // reuse layout or use HRLayout if available
 import { useAuth } from '../../hooks/useAuth';
 
 const COLORS = ['#4caf50', '#2196f3', '#f44336']; // colors for charts
@@ -98,7 +98,7 @@ const HRDashboard = () => {
   if (error) return <Typography color="error" sx={{ textAlign: 'center', mt: 5 }}>{error}</Typography>;
 
   return (
-    <ManagerLayout>
+    <HRLayout>
       <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
         {/* Header */}
         <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', color: '#15B2C0' }}>
@@ -218,7 +218,7 @@ const HRDashboard = () => {
           </Grid>
         </Grid>
       </Box>
-    </ManagerLayout>
+    </HRLayout>
   );
 };
 
