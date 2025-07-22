@@ -26,9 +26,8 @@ import {
   FormHelperText,
   CircularProgress,
   Skeleton,
-  TablePagination,
-  Grid,
-  TextField
+  CircularProgress,
+  TablePagination
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -73,6 +72,8 @@ const GoalManagement = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [goalToDelete, setGoalToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const router = useRouter();
   
   // Pagination state
@@ -109,7 +110,51 @@ const GoalManagement = () => {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      setGoals(response.data);
+      const updatedGoals = await Promise.all(
+        response.data.map(async (goal) => {
+          // Fetch tasks for the goal
+          const tasksRes = await axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/project/${goal._id}`,
+            { headers: { Authorization: `Bearer ${user.token}` } }
+          );
+          const tasks = tasksRes.data;
+
+          // Determine status based on tasks' statuses
+          let newStatus = 'scheduled'; // default
+
+          if (tasks.length > 0) {
+            const anyInProgress = tasks.some(task => task.status === 'in-progress');
+            const allCompleted = tasks.every(task => task.status === 'completed');
+
+            if (allCompleted) {
+              newStatus = 'completed';
+            } else if (anyInProgress) {
+              newStatus = 'in-progress';
+            } else {
+              newStatus = 'scheduled';
+            }
+          }
+
+          // Update goal status if changed
+          if (goal.status !== newStatus) {
+            try {
+              await axios.put(
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${goal._id}`,
+                { status: newStatus },
+                { headers: { Authorization: `Bearer ${user.token}` } }
+              );
+              // Return updated goal with new status for UI
+              return { ...goal, status: newStatus };
+            } catch (updateErr) {
+              console.error(`Failed to update goal status for goal ${goal._id}`, updateErr);
+              return goal; // fall back to original status
+            }
+          }
+
+          return { ...goal, status: newStatus };
+        })
+      );
+      setGoals(updatedGoals);
     } catch (err) {
       setError("Failed to fetch goals");
       throw err;
@@ -139,62 +184,18 @@ const GoalManagement = () => {
     } catch (err) {
       console.error("Failed to fetch teams:", err);
       setError("Failed to fetch your teams");
+      throw err;
     }
   };
 
-  // Function to determine goal status based on tasks
-  const determineGoalStatus = (goalId) => {
-    const goalTasks = tasks.filter(task => task.projectId?._id === goalId);
-    
-    if (goalTasks.length === 0) {
-      return "scheduled"; // No tasks yet
-    }
-
-    const allCompleted = goalTasks.every(task => task.status === "completed");
-    const anyInProgress = goalTasks.some(task => task.status === "in-progress");
-
-    if (allCompleted) {
-      return "completed";
-    } else if (anyInProgress) {
-      return "in-progress";
-    } else {
-      return "scheduled";
-    }
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
-  // Update goal status when tasks change
-  useEffect(() => {
-    if (tasks.length > 0 && goals.length > 0) {
-      const updatedGoals = goals.map(goal => {
-        const newStatus = determineGoalStatus(goal._id);
-        if (goal.status !== newStatus) {
-          // Only update if status changed
-          return { ...goal, status: newStatus };
-        }
-        return goal;
-      });
-      
-      // Check if any goal status actually changed
-      if (JSON.stringify(updatedGoals) !== JSON.stringify(goals)) {
-        setGoals(updatedGoals);
-        
-        // Update goals in backend
-        updatedGoals.forEach(async (goal) => {
-          if (goal.status !== determineGoalStatus(goal._id)) {
-            try {
-              await axios.put(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/${goal._id}`,
-                { status: goal.status },
-                { headers: { Authorization: `Bearer ${user.token}` } }
-              );
-            } catch (err) {
-              console.error("Failed to update goal status:", err);
-            }
-          }
-        });
-      }
-    }
-  }, [tasks]);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const validateForm = () => {
     let valid = true;
@@ -211,20 +212,20 @@ const GoalManagement = () => {
     }
 
     if (!newGoal.startDate) {
-    errors.startDate = "Start date is required";
-    valid = false;
-  } else {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Clear time part
-
-    const selectedDate = new Date(newGoal.startDate);
-    selectedDate.setHours(0, 0, 0, 0); // Clear time part
-
-    if (selectedDate < today) {
-      errors.startDate = "Start date cannot be in the past";
+      errors.startDate = "Start date is required";
       valid = false;
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const selectedDate = new Date(newGoal.startDate);
+      selectedDate.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        errors.startDate = "Start date cannot be in the past";
+        valid = false;
+      }
     }
-  }
 
     if (!newGoal.dueDate) {
       errors.dueDate = "Due date is required";
@@ -245,6 +246,11 @@ const GoalManagement = () => {
 
   const handleSaveGoal = async () => {
     if (!validateForm()) return;
+
+    // Ensure status is initially "scheduled" on create
+    if (!isUpdate) {
+      newGoal.status = "scheduled";
+    }
 
     setActionLoading(true);
     try {
@@ -351,18 +357,6 @@ const GoalManagement = () => {
     }
   };
 
-  // Handle page change
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // Handle rows per page change
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  // Loading skeleton for table rows
   const renderLoadingSkeletons = () => {
     return Array.from({ length: rowsPerPage }).map((_, index) => (
       <TableRow key={index}>
@@ -415,7 +409,7 @@ const GoalManagement = () => {
               goals
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((goal) => (
-                  <TableRow key={goal._id}>
+                  <TableRow key={goal._id} hover>
                     <TableCell>{goal.projectTitle}</TableCell>
                     <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
@@ -427,16 +421,16 @@ const GoalManagement = () => {
                     <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button 
-                          variant="outlined" 
+                        <Button
+                          variant="outlined"
                           onClick={() => handleUpdateGoal(goal)}
                           disabled={actionLoading}
                         >
                           {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
                         </Button>
-                        <Button 
-                          variant="outlined" 
-                          color="error" 
+                        <Button
+                          variant="outlined"
+                          color="error"
                           onClick={() => {
                             setGoalToDelete(goal);
                             setOpenDeleteDialog(true);
@@ -454,18 +448,15 @@ const GoalManagement = () => {
         </Table>
       </TableContainer>
 
-      {/* Pagination */}
-      {!loading && (
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={goals.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      )}
+      <TablePagination
+        component="div"
+        count={goals.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
 
       <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update Goal" : "Create New Goal"}</DialogTitle>
@@ -541,6 +532,7 @@ const GoalManagement = () => {
                   value={newGoal.status}
                   onChange={handleInputChange}
                   label="Status"
+                  disabled // disable manual status editing as status is managed by tasks
                 >
                   <MenuItem value="scheduled">Scheduled</MenuItem>
                   <MenuItem value="in-progress">In Progress</MenuItem>
@@ -584,7 +576,9 @@ const GoalManagement = () => {
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this goal?</Typography>
+          <Typography>
+            Are you sure you want to delete the goal "{goalToDelete?.projectTitle}"?
+          </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>Cancel</Button>
@@ -599,7 +593,6 @@ const GoalManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Success and Error Notifications */}
       <Snackbar
         open={!!successMessage}
         autoHideDuration={6000}
