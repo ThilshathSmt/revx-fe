@@ -32,7 +32,10 @@ import {
   Alert,
   FormHelperText,
   Skeleton,
-  CircularProgress
+  CircularProgress,
+  Avatar,
+  Fade,
+  styled
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -40,6 +43,14 @@ import HRLayout from "../../components/HRLayout";
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 
+// Styled components for enhanced UI
+const StyledCard = styled(Card)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+  color: 'white',
+  marginBottom: theme.spacing(3),
+  borderRadius: 16,
+  boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+}));
 
 // Utility function for minimum delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -83,7 +94,7 @@ const TeamManagement = () => {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [teamsPerPage] = useState(9);
+  const [teamsPerPage] = useState(6);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState(null);
   const router = useRouter();
@@ -344,9 +355,30 @@ const TeamManagement = () => {
 
   return (
     <HRLayout>
-      <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', mb: 4, color: "#15B2C0" }}>
-        Team Management
-      </Typography>
+      <Fade in timeout={800}>
+          <StyledCard>
+            <CardContent sx={{ textAlign: 'center', py: 4 }}>
+              <Avatar sx={{ 
+                bgcolor: 'rgba(255,255,255,0.2)', 
+                width: 64, 
+                height: 64, 
+                mx: 'auto', 
+                mb: 2 
+              }}>
+                <PeopleAltIcon sx={{ fontSize: 40 }} />
+              </Avatar>
+              <Typography variant="h3" gutterBottom sx={{ 
+                fontWeight: 'bold',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              }}>
+                Team Management
+              </Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                Manage your organization's teams effectively
+              </Typography>
+            </CardContent>
+          </StyledCard>
+        </Fade>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 130, mb: 3 }}>
         <Button
           variant="contained"
