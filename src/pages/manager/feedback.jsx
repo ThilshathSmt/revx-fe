@@ -569,7 +569,7 @@ const ManagerFeedback = () => {
                 ) : (
                   givenFeedbacks.map((feedback) => (
                     <StyledTableRow key={feedback._id}>
-                      <TableCell>{feedback.selfAssessmentId?.employeeId?.name || 'N/A'}</TableCell>
+                      <TableCell>{feedback.selfAssessmentId?.employeeId?.username || 'N/A'}</TableCell>
                       <TableCell>{feedback.selfAssessmentId?.taskId?.taskTitle || 'N/A'}</TableCell>
                       <TableCell>
                         <Tooltip title={feedback.feedbackText || 'No feedback'}>
