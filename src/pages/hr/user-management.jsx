@@ -32,10 +32,8 @@ import TablePagination from '@mui/material/TablePagination';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import HRLayout from "../../components/HRLayout";
-import { Man2 } from "@mui/icons-material";
 
 const UserManagement = () => {
-
   const [emailError, setEmailError] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
   const { user } = useAuth();
@@ -61,6 +59,9 @@ const UserManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
+  // List of department IDs assigned to managers
+  const [assignedManagerDepartments, setAssignedManagerDepartments] = useState([]);
+
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/hr");
@@ -68,13 +69,13 @@ const UserManagement = () => {
       fetchDepartments();
     }
   }, [user, router]);
-  
+
   useEffect(() => {
     if (departments.length > 0) {
       fetchUsers();
     }
   }, [departments]);
-    
+
   const fetchDepartments = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/departments`, {
@@ -124,6 +125,17 @@ const UserManagement = () => {
 
       setUsers(usersWithDetails);
       setLoading(false);
+
+      // Extract list of assigned departments to managers
+      const assignedDepartments = usersWithDetails
+        .filter(u => u.role === "manager")
+        .map(u => u.managerDetails?.department)
+        // Make sure to get string IDs in case some are objects
+        .map(dep => (typeof dep === "object" ? dep._id : dep))
+        .filter(Boolean); // Remove null/undefined
+      
+      setAssignedManagerDepartments(assignedDepartments);
+
     } catch (err) {
       setError("Failed to fetch users");
       setLoading(false);
@@ -140,10 +152,19 @@ const UserManagement = () => {
       setEmailError(false);
       setEmailErrorMessage("");
     }
+
     const url = isUpdate
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/update/${selectedUser._id}`
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/create`;
     const method = isUpdate ? "put" : "post";
+
+    // Prevent creating a new manager in a department that's already assigned:
+    if (!isUpdate && newUser.role === "manager") {
+      if (assignedManagerDepartments.includes(newUser.managerDetails.department)) {
+        setError("This department is already assigned to another manager.");
+        return;
+      }
+    }
 
     try {
       // Prepare the user data based on role
@@ -191,9 +212,11 @@ const UserManagement = () => {
       setSelectedUser(null);
     } catch (err) {
       console.error("Error saving user:", err.response?.data || err.message);
-      setError(err.response?.data?.message || 
-        err.response?.data?.error || 
-        "Failed to save user. Please check the input and try again.");
+      setError(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to save user. Please check the input and try again."
+      );
     }
   };
 
@@ -203,16 +226,18 @@ const UserManagement = () => {
       email: userToUpdate.email,
       password: "", // Never pre-fill password for security
       role: userToUpdate.role,
-      managerDetails: userToUpdate.role === "manager" ? 
-        { 
-          department: userToUpdate.managerDetails?.department?._id || 
-                     userToUpdate.managerDetails?.department || "",
-        } : { department: "" },
-      employeeDetails: userToUpdate.role === "employee" ? 
-        { 
-          department: userToUpdate.employeeDetails?.department?._id || 
-                     userToUpdate.employeeDetails?.department || "",
-        } : { department: "" },
+      managerDetails: userToUpdate.role === "manager"
+        ? {
+            department: userToUpdate.managerDetails?.department?._id ||
+                        userToUpdate.managerDetails?.department || "",
+          }
+        : { department: "" },
+      employeeDetails: userToUpdate.role === "employee"
+        ? {
+            department: userToUpdate.employeeDetails?.department?._id ||
+                        userToUpdate.employeeDetails?.department || "",
+          }
+        : { department: "" },
     });
     setIsUpdate(true);
     setSelectedUser(userToUpdate);
@@ -257,10 +282,23 @@ const UserManagement = () => {
   };
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewUser((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
+    
+    // Support nested properties like "managerDetails.department"
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setNewUser((prevState) => ({
+        ...prevState,
+        [parent]: {
+          ...prevState[parent],
+          [child]: value,
+        },
+      }));
+    } else {
+      setNewUser((prevState) => ({
+        ...prevState,
+        [name]: value,
+      }));
+    }
   };
 
   const handleRoleChange = (e) => {
@@ -279,6 +317,19 @@ const UserManagement = () => {
   };
 
   if (loading) return <Typography variant="h6">Loading users...</Typography>;
+
+  // For the Manager department dropdown, exclude assigned departments — 
+  // but when updating a manager, include their current assigned department
+  const filteredDepartmentsForManager = departments.filter((dept) => {
+    if (!isUpdate) {
+      // Creating new manager: exclude assigned manager departments
+      return !assignedManagerDepartments.includes(dept._id);
+    } else {
+      // Updating existing manager: include the currently assigned dept even if assigned
+      const currentDepartment = newUser.managerDetails.department;
+      return !assignedManagerDepartments.includes(dept._id) || dept._id === currentDepartment;
+    }
+  });
 
   return (
     <HRLayout>
@@ -305,71 +356,73 @@ const UserManagement = () => {
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell><strong>User ID</strong></TableCell>
-              <TableCell><strong>Username</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Role</strong></TableCell>
-              <TableCell><strong>Details</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
+             <TableRow>
+               <TableCell><strong>User ID</strong></TableCell>
+               <TableCell><strong>Username</strong></TableCell>
+               <TableCell><strong>Email</strong></TableCell>
+               <TableCell><strong>Role</strong></TableCell>
+               <TableCell><strong>Details</strong></TableCell>
+               <TableCell><strong>Actions</strong></TableCell>
+             </TableRow>
           </TableHead>
           <TableBody>
           {users
-          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-          .map((user) => (
-              <TableRow key={user._id}>
-                <TableCell>{user._id}</TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>
-                  {user.role === "manager" && (
-                    <Typography variant="body2">
-                      <strong>Department:</strong> {user.managerDetails?.departmentName || "N/A"}
-                    </Typography>
-                  )}
-                  {user.role === "employee" && (
-                    <Typography variant="body2">
-                      <strong>Department:</strong> {user.employeeDetails?.departmentName || "N/A"}
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => handleUpdateUser(user)}
-                    >
-                      <EditIcon />
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={() => handleOpenDeleteDialog(user)}
-                    >
-                      <DeleteIcon />
-                    </Button>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
+            .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+            .map((user) => (
+               <TableRow key={user._id}>
+                 <TableCell>{user._id}</TableCell>
+                 <TableCell>{user.username}</TableCell>
+                 <TableCell>{user.email}</TableCell>
+                 <TableCell>{user.role}</TableCell>
+                 <TableCell>
+                   {user.role === "manager" && (
+                     <Typography variant="body2">
+                       <strong>Department:</strong> {user.managerDetails?.departmentName || "N/A"}
+                     </Typography>
+                   )}
+                   {user.role === "employee" && (
+                     <Typography variant="body2">
+                       <strong>Department:</strong> {user.employeeDetails?.departmentName || "N/A"}
+                     </Typography>
+                   )}
+                 </TableCell>
+                 <TableCell>
+                   <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                     <Button
+                       variant="outlined"
+                       color="primary"
+                       onClick={() => handleUpdateUser(user)}
+                     >
+                       <EditIcon />
+                     </Button>
+                     <Button
+                       variant="outlined"
+                       color="error"
+                       onClick={() => handleOpenDeleteDialog(user)}
+                     >
+                       <DeleteIcon />
+                     </Button>
+                   </Box>
+                 </TableCell>
+               </TableRow>
+             ))}
           </TableBody>
         </Table>
       </TableContainer>
+
       <TablePagination
-  component="div"
-  count={users.length}
-  page={page}
-  onPageChange={(event, newPage) => setPage(newPage)}
-  rowsPerPage={rowsPerPage}
-  onRowsPerPageChange={(event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Reset to first page
-  }}
-  rowsPerPageOptions={[5, 10, 20, 50]}
-/>
+        component="div"
+        count={users.length}
+        page={page}
+        onPageChange={(event, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(event) => {
+          setRowsPerPage(parseInt(event.target.value, 10));
+          setPage(0); // Reset to first page
+        }}
+        rowsPerPageOptions={[5, 10, 20, 50]}
+      />
+
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md">
         <DialogTitle>{isUpdate ? "Update User" : "Create New User"}</DialogTitle>
         <DialogContent>
@@ -437,14 +490,9 @@ const UserManagement = () => {
                   <Select
                     name="managerDetails.department"
                     value={newUser.managerDetails.department}
-                    onChange={(e) =>
-                      setNewUser((prevState) => ({
-                        ...prevState,
-                        managerDetails: { ...prevState.managerDetails, department: e.target.value },
-                      }))
-                    }
+                    onChange={handleInputChange}
                   >
-                    {departments.map((dept) => (
+                    {filteredDepartmentsForManager.map((dept) => (
                       <MenuItem key={dept._id} value={dept._id}>
                         {dept.departmentName}
                       </MenuItem>
@@ -462,12 +510,7 @@ const UserManagement = () => {
                   <Select
                     name="employeeDetails.department"
                     value={newUser.employeeDetails.department}
-                    onChange={(e) =>
-                      setNewUser((prevState) => ({
-                        ...prevState,
-                        employeeDetails: { ...prevState.employeeDetails, department: e.target.value },
-                      }))
-                    }
+                    onChange={handleInputChange}
                   >
                     {departments.map((dept) => (
                       <MenuItem key={dept._id} value={dept._id}>
