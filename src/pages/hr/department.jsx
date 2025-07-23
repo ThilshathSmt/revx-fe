@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../../hooks/useAuth";
 import { useRouter } from "next/router";
 import {
+  Container,
   Table,
   TableBody,
   TableCell,
@@ -319,6 +320,7 @@ const DepartmentManagement = () => {
 
   return (
     <HRLayout>
+    <Container maxWidth="xl" sx={{ py: 3 }}>
       <Fade in timeout={800}>
         <StyledCard>
           <CardContent sx={{ textAlign: "center", py: 4 }}>
@@ -690,6 +692,7 @@ const DepartmentManagement = () => {
           {error}
         </Alert>
       </Snackbar>
+      </Container>
     </HRLayout>
   );
 };

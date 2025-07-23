@@ -3,6 +3,7 @@ import axios from "axios";
 import { useAuth } from "../../hooks/useAuth";
 import { useRouter } from "next/router";
 import {
+  Container,
   Table,
   TableBody,
   TableCell,
@@ -472,6 +473,7 @@ const TaskManagement = () => {
 
   return (
     <ManagerLayout>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
       <StyledContainer>
         <Fade in timeout={800}>
           <StyledCard>
@@ -789,6 +791,7 @@ const TaskManagement = () => {
           </Alert>
         </Snackbar>
       </StyledContainer>
+      </Container>
     </ManagerLayout>
   );
 };

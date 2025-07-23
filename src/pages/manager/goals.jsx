@@ -188,7 +188,7 @@ const GoalManagement = () => {
   const [goalToDelete, setGoalToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(6);
   const router = useRouter();
 
   // New state for viewing tasks dialog
@@ -483,19 +483,11 @@ const GoalManagement = () => {
 
   return (
     <ManagerLayout>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
       <StyledContainer maxWidth={false}>
         <Fade in timeout={800}>
           <StyledCard>
             <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Avatar sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                width: 64, 
-                height: 64, 
-                mx: 'auto', 
-                mb: 2 
-              }}>
-                <FlagIcon sx={{ fontSize: 40 }} />
-              </Avatar>
               <Typography variant="h3" gutterBottom sx={{ 
                 fontWeight: 'bold',
                 textShadow: '0 2px 4px rgba(0,0,0,0.3)',
@@ -798,6 +790,7 @@ const GoalManagement = () => {
           </Alert>
         </Snackbar>
       </StyledContainer>
+      </Container>
     </ManagerLayout>
   );
 };
