@@ -167,7 +167,7 @@ const ManagerDashboard = () => {
                 <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                   <DashboardIcon sx={{ fontSize: 40 }} />
                   <Typography variant="h3" fontWeight={700}>
-                    HR Dashboard
+                    Manager Dashboard
                   </Typography>
                 </Stack>
                 <Typography variant="h5" sx={{ opacity: 0.9, mb: 1 }}>
