@@ -666,7 +666,7 @@ const UserManagement = () => {
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} sx={{ mt: '20px' }}>
                 <TextField
                   label="Username"
                   variant="outlined"
@@ -685,7 +685,7 @@ const UserManagement = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} md={6} sx={{ mt: '20px' }}>
                 <TextField
                   label="Email"
                   variant="outlined"
