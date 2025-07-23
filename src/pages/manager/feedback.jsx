@@ -36,6 +36,64 @@ import {
   PendingActions as PendingActionsIcon
 } from '@mui/icons-material';
 import ManagerLayout from '../../components/ManagerLayout';
+import { styled } from '@mui/material/styles';
+import { Fade } from '@mui/material';
+// === Styled Components (copied from manager/tasks.jsx) ===
+const StyledCard = styled(Paper)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+  color: 'white',
+  marginBottom: theme.spacing(3),
+  borderRadius: 16,
+  boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+}));
+
+const StyledContainer = styled(Box)(({ theme }) => ({
+  padding: 0,
+  maxWidth: 'false',
+}));
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  borderRadius: 16,
+  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+  overflow: 'hidden',
+  backgroundColor: '#fff',
+  marginBottom: theme.spacing(3),
+}));
+
+const StyledTableHead = styled(TableHead)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #15B2C0 0%, #0c4672 100%)',
+  '& .MuiTableCell-root': {
+    color: '#fff',
+    fontWeight: 700,
+    fontSize: '0.95rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: 'rgba(21, 178, 192, 0.05)',
+  },
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    backgroundColor: 'rgba(21, 178, 192, 0.15)',
+    transform: 'scale(1.005)',
+    boxShadow: '0 2px 10px rgba(21, 178, 192, 0.2)',
+  },
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: 25,
+  padding: theme.spacing(1.5, 4),
+  fontWeight: 700,
+  textTransform: 'none',
+  background: 'linear-gradient(135deg, #15B2C0 0%, #0c4672 100%)',
+  color: 'white',
+  '&:hover': {
+    background: 'linear-gradient(135deg, #0c4672 0%, #15B2C0 100%)',
+  },
+}));
 
 const ManagerFeedback = () => {
   const { user } = useAuth();
@@ -364,156 +422,295 @@ const ManagerFeedback = () => {
 
   return (
     <ManagerLayout>
-      <Typography variant="h4" gutterBottom sx={{ 
-        textAlign: 'center', 
-        color: '#15B2C0', 
-        mb: 4,
-        fontWeight: 'bold'
-      }}>
-        Employee Feedback Management
-      </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-          <Button 
-            onClick={fetchFeedbacks} 
-            color="inherit" 
-            size="small"
-            sx={{ ml: 2 }}
-          >
-            Retry
-          </Button>
-        </Alert>
-      )}
-
-      <Tabs 
-        value={tabValue} 
-        onChange={(e, newValue) => setTabValue(newValue)} 
-        centered
-        sx={{ mb: 3 }}
-      >
-        <Tab 
-          label={
-            <Box display="flex" alignItems="center">
-              <PendingActionsIcon sx={{ mr: 1 }} />
-              Pending Feedback
+      <StyledContainer>
+        <Fade in timeout={800}>
+          <StyledCard>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h4" gutterBottom sx={{ 
+                fontWeight: 'bold',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                color: 'white',
+                mb: 0
+              }}>
+                Employee Feedback Management
+              </Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9, color: 'white' }}>
+                Review and provide feedback for employee self-assessments
+              </Typography>
             </Box>
-          } 
-        />
-        <Tab 
-          label={
-            <Box display="flex" alignItems="center">
-              <CheckCircleIcon sx={{ mr: 1 }} />
-              Given Feedback
-            </Box>
-          } 
-        />
-      </Tabs>
-
-      {tabValue === 0 ? renderPendingAssessments() : renderGivenFeedbacks()}
-
-      {/* Feedback Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="md">
-        <DialogTitle sx={{ bgcolor: '#15B2C0', color: 'white' }}>
-          {mode === 'edit' ? 'Edit Feedback' : 'Provide Feedback'}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              <strong>Employee:</strong> {selectedAssessment?.employeeId?.name || 'N/A'}
-            </Typography>
-            <Typography variant="subtitle1" gutterBottom>
-              <strong>Task:</strong> {selectedAssessment?.taskId?.taskTitle || 'N/A'}
-            </Typography>
-            <Typography variant="subtitle1" gutterBottom>
-              <strong>Submitted:</strong> {selectedAssessment?.createdAt ? 
-                new Date(selectedAssessment.createdAt).toLocaleDateString() : 'N/A'}
-            </Typography>
-            {selectedAssessment?.comments && (
-              <>
-                <Typography variant="subtitle1" gutterBottom>
-                  <strong>Employee's Self-Assessment:</strong>
-                </Typography>
-                <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
-                  <Typography>
-                    {selectedAssessment.comments}
-                  </Typography>
-                </Paper>
-              </>
-            )}
-          </Box>
-
-          <TextField
-            label="Your Feedback"
-            multiline
-            rows={8}
-            fullWidth
-            variant="outlined"
-            value={feedbackText}
-            onChange={(e) => setFeedbackText(e.target.value)}
-            placeholder="Provide constructive feedback including:
-- Strengths demonstrated
-- Areas for improvement
-- Specific examples
-- Suggestions for development"
-            InputProps={{
-              style: { fontSize: '0.875rem' }
-            }}
-            sx={{ mt: 1 }}
-            error={feedbackText.length > 0 && feedbackText.trim().length < 10}
-            helperText={
-              feedbackText.length > 0 && feedbackText.trim().length < 10
-                ? "Feedback should be at least 10 characters"
-                : " "
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={handleCloseDialog} 
-            color="secondary"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmitFeedback}
-            color="primary"
-            variant="contained"
-            disabled={!feedbackText || feedbackText.trim().length < 10 || isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
-          >
-            {isSubmitting ? 'Processing...' : mode === 'edit' ? 'Update' : 'Submit'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-          action={
-            <IconButton
+          </StyledCard>
+        </Fade>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+            <Button 
+              onClick={fetchFeedbacks} 
+              color="inherit" 
               size="small"
-              aria-label="close"
-              color="inherit"
-              onClick={handleCloseSnackbar}
+              sx={{ ml: 2 }}
             >
-              <CloseIcon fontSize="small" />
-            </IconButton>
-          }
+              Retry
+            </Button>
+          </Alert>
+        )}
+        <Tabs 
+          value={tabValue} 
+          onChange={(e, newValue) => setTabValue(newValue)} 
+          centered
+          sx={{ mb: 3 }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Tab 
+            label={
+              <Box display="flex" alignItems="center">
+                <PendingActionsIcon sx={{ mr: 1 }} />
+                Pending Feedback
+              </Box>
+            } 
+          />
+          <Tab 
+            label={
+              <Box display="flex" alignItems="center">
+                <CheckCircleIcon sx={{ mr: 1 }} />
+                Given Feedback
+              </Box>
+            } 
+          />
+        </Tabs>
+        {tabValue === 0 ? (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <StyledTableHead>
+                <TableRow>
+                  <TableCell><strong>Employee</strong></TableCell>
+                  <TableCell><strong>Task</strong></TableCell>
+                  <TableCell><strong>Submitted</strong></TableCell>
+                  <TableCell><strong>Self Assessment</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
+                </TableRow>
+              </StyledTableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : pendingAssessments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        No pending assessments requiring feedback
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  pendingAssessments.map((assessment) => (
+                    <StyledTableRow key={assessment._id}>
+                      <TableCell>{assessment.employeeId?.name || 'N/A'}</TableCell>
+                      <TableCell>{assessment.taskId?.taskTitle || 'N/A'}</TableCell>
+                      <TableCell>{new Date(assessment.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Tooltip title={assessment.comments || 'No comments'}>
+                          <Typography sx={{ 
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {assessment.comments || 'N/A'}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <GradientButton
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleOpenDialog(assessment)}
+                          startIcon={<FeedbackIcon />}
+                          sx={{ minWidth: 120 }}
+                        >
+                          Provide Feedback
+                        </GradientButton>
+                      </TableCell>
+                    </StyledTableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        ) : (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <StyledTableHead>
+                <TableRow>
+                  <TableCell><strong>Employee</strong></TableCell>
+                  <TableCell><strong>Task</strong></TableCell>
+                  <TableCell><strong>Feedback</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
+                </TableRow>
+              </StyledTableHead>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : givenFeedbacks.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        No feedback given yet
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  givenFeedbacks.map((feedback) => (
+                    <StyledTableRow key={feedback._id}>
+                      <TableCell>{feedback.selfAssessmentId?.employeeId?.name || 'N/A'}</TableCell>
+                      <TableCell>{feedback.selfAssessmentId?.taskId?.taskTitle || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Tooltip title={feedback.feedbackText || 'No feedback'}>
+                          <Typography sx={{ 
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {feedback.feedbackText || 'N/A'}
+                          </Typography>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={feedback.status === 'updated' ? 'Updated' : 'Submitted'}
+                          color={feedback.status === 'updated' ? 'warning' : 'success'}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="Edit Feedback">
+                          <IconButton
+                            onClick={() => handleOpenDialog(feedback.selfAssessmentId, feedback)}
+                            color="primary"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Feedback">
+                          <IconButton
+                            onClick={() => handleDeleteFeedback(feedback._id)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </StyledTableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        )}
+        {/* Feedback Dialog */}
+        <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth maxWidth="md">
+          <DialogTitle sx={{ bgcolor: '#15B2C0', color: 'white' }}>
+            {mode === 'edit' ? 'Edit Feedback' : 'Provide Feedback'}
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Employee:</strong> {selectedAssessment?.employeeId?.name || 'N/A'}
+              </Typography>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Task:</strong> {selectedAssessment?.taskId?.taskTitle || 'N/A'}
+              </Typography>
+              <Typography variant="subtitle1" gutterBottom>
+                <strong>Submitted:</strong> {selectedAssessment?.createdAt ? 
+                  new Date(selectedAssessment.createdAt).toLocaleDateString() : 'N/A'}
+              </Typography>
+              {selectedAssessment?.comments && (
+                <>
+                  <Typography variant="subtitle1" gutterBottom>
+                    <strong>Employee's Self-Assessment:</strong>
+                  </Typography>
+                  <Paper elevation={0} sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
+                    <Typography>
+                      {selectedAssessment.comments}
+                    </Typography>
+                  </Paper>
+                </>
+              )}
+            </Box>
+            <TextField
+              label="Your Feedback"
+              multiline
+              rows={8}
+              fullWidth
+              variant="outlined"
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Provide constructive feedback including:\n- Strengths demonstrated\n- Areas for improvement\n- Specific examples\n- Suggestions for development"
+              InputProps={{
+                style: { fontSize: '0.875rem' }
+              }}
+              sx={{ mt: 1 }}
+              error={feedbackText.length > 0 && feedbackText.trim().length < 10}
+              helperText={
+                feedbackText.length > 0 && feedbackText.trim().length < 10
+                  ? "Feedback should be at least 10 characters"
+                  : " "
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={handleCloseDialog} 
+              color="secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <GradientButton
+              onClick={handleSubmitFeedback}
+              color="primary"
+              variant="contained"
+              disabled={!feedbackText || feedbackText.trim().length < 10 || isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+            >
+              {isSubmitting ? 'Processing...' : mode === 'edit' ? 'Update' : 'Submit'}
+            </GradientButton>
+          </DialogActions>
+        </Dialog>
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+            action={
+              <IconButton
+                size="small"
+                aria-label="close"
+                color="inherit"
+                onClick={handleCloseSnackbar}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            }
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </StyledContainer>
     </ManagerLayout>
   );
 };
