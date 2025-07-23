@@ -43,7 +43,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import ManagerLayout from "../../components/ManagerLayout";
 import FlagIcon from "@mui/icons-material/Flag";
 
-
 // Utility function for minimum delay
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 const withMinimumDelay = async (fn, minDelay = 1000) => {
@@ -57,7 +56,6 @@ const withMinimumDelay = async (fn, minDelay = 1000) => {
 
 // === Styled Components ===
 
-// Styled components for enhanced UI
 const StyledCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
   color: 'white',
@@ -191,7 +189,10 @@ const GoalManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const router = useRouter();
 
-  // New state for viewing tasks dialog
+  // For team filter
+  const [filterTeamId, setFilterTeamId] = useState("");
+
+  // State for viewing tasks
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [tasksForView, setTasksForView] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
@@ -202,6 +203,7 @@ const GoalManagement = () => {
     } else {
       fetchInitialData();
     }
+    // eslint-disable-next-line
   }, [user, router]);
 
   const fetchInitialData = async () => {
@@ -265,7 +267,6 @@ const GoalManagement = () => {
               return goal; // fall back to original status
             }
           }
-
           return { ...goal, status: newStatus };
         })
       );
@@ -314,23 +315,19 @@ const GoalManagement = () => {
       errors.projectTitle = "Project title is required";
       valid = false;
     }
-
     if (!newGoal.startDate) {
       errors.startDate = "Start date is required";
       valid = false;
     } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
       const selectedDate = new Date(newGoal.startDate);
       selectedDate.setHours(0, 0, 0, 0);
-
       if (selectedDate < today) {
         errors.startDate = "Start date cannot be in the past";
         valid = false;
       }
     }
-
     if (!newGoal.dueDate) {
       errors.dueDate = "Due date is required";
       valid = false;
@@ -338,12 +335,10 @@ const GoalManagement = () => {
       errors.dueDate = "Due date must be after start date";
       valid = false;
     }
-
     if (!newGoal.teamId) {
       errors.teamId = "Team is required";
       valid = false;
     }
-
     setFormErrors(errors);
     return valid;
   };
@@ -355,7 +350,6 @@ const GoalManagement = () => {
     if (!isUpdate) {
       newGoal.status = "scheduled";
     }
-
     setActionLoading(true);
     try {
       await withMinimumDelay(async () => {
@@ -481,46 +475,67 @@ const GoalManagement = () => {
     ));
   };
 
+  // Filtered goals based on selected team
+  const filteredGoals = filterTeamId
+    ? goals.filter(goal => goal.teamId?._id === filterTeamId)
+    : goals;
+
   return (
     <ManagerLayout>
       <Container maxWidth="xl" sx={{ py: 3 }}>
-      <StyledContainer maxWidth={false}>
-        <Fade in timeout={800}>
-          <StyledCard>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h3" gutterBottom sx={{ 
-                fontWeight: 'bold',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}>
-                Goal Management
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                Manage your organization's goals and track progress
-              </Typography>
-            </CardContent>
-          </StyledCard>
-        </Fade>
+        <StyledContainer maxWidth={false}>
+          <Fade in timeout={800}>
+            <StyledCard>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="h3" gutterBottom sx={{
+                  fontWeight: 'bold',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                }}>
+                  Goal Management
+                </Typography>
+                <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                  Manage your organization's goals and track progress
+                </Typography>
+              </CardContent>
+            </StyledCard>
+          </Fade>
 
-        <GradientButton variant="contained" onClick={() => setOpen(true)} disabled={loading} sx={{ mb: 3 }}>
-          {isUpdate ? "Update Goal" : "Create New Goal"}
-        </GradientButton>
+          <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <GradientButton variant="contained" onClick={() => setOpen(true)} disabled={loading}>
+              {isUpdate ? "Update Goal" : "Create New Goal"}
+            </GradientButton>
+            {/* Dropdown for Team Filter */}
+            <FormControl sx={{ minWidth: 220 }}>
+              <InputLabel>Filter by Team</InputLabel>
+              <Select
+                value={filterTeamId}
+                label="Filter by Team"
+                onChange={e => { setFilterTeamId(e.target.value); setPage(0); }}
+              >
+                <MenuItem value="">All Teams</MenuItem>
+                {teams.map(team => (
+                  <MenuItem key={team._id} value={team._id}>{team.teamName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
 
-        <StyledTableContainer component={Paper}>
-          <Table>
-            <StyledTableHead>
-              <TableRow>
-                <TableCell>Project Title</TableCell>
-                <TableCell>Start Date</TableCell>
-                <TableCell>Due Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Team</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </StyledTableHead>
-            <TableBody>
-              {loading
-                ? renderLoadingSkeletons()
-                : goals.length === 0 ? (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <StyledTableHead>
+                <TableRow>
+                  <TableCell>Project Title</TableCell>
+                  <TableCell>Start Date</TableCell>
+                  <TableCell>Due Date</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Team</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </StyledTableHead>
+              <TableBody>
+                {loading
+                  ? renderLoadingSkeletons()
+                  : filteredGoals.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                         <Typography variant="body1" color="text.secondary">
@@ -529,267 +544,260 @@ const GoalManagement = () => {
                       </TableCell>
                     </TableRow>
                   )
-                : goals
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map(goal => (
-                      <StyledTableRow key={goal._id} hover>
-                        <TableCell>{goal.projectTitle}</TableCell>
-                        <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <StatusChip status={goal.status}>{goal.status}</StatusChip>
-                        </TableCell>
-                        <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            {goal.status === "completed" ? (
-                              <GradientButton
-                                variant="outlined"
-                                color="primary"
-                                onClick={() => handleViewGoal(goal)}
-                                disabled={actionLoading}
-                                startIcon={<RemoveRedEyeIcon />}
-                                sx={{ borderRadius: '12px', px: 2, fontWeight: '600', textTransform: 'none' }}
-                              >
-                                
-                              </GradientButton>
-                            ) : (
+                  : filteredGoals
+                      .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                      .map(goal => (
+                        <StyledTableRow key={goal._id} hover>
+                          <TableCell>{goal.projectTitle}</TableCell>
+                          <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <StatusChip status={goal.status}>{goal.status}</StatusChip>
+                          </TableCell>
+                          <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              {goal.status === "completed" ? (
+                                <GradientButton
+                                  variant="outlined"
+                                  color="primary"
+                                  onClick={() => handleViewGoal(goal)}
+                                  disabled={actionLoading}
+                                  startIcon={<RemoveRedEyeIcon />}
+                                  sx={{ borderRadius: '12px', px: 2, fontWeight: '600', textTransform: 'none' }}
+                                >
+                                  View
+                                </GradientButton>
+                              ) : (
+                                <ActionButton
+                                  onClick={() => handleUpdateGoal(goal)}
+                                  disabled={actionLoading}
+                                  color="primary"
+                                  width={100}
+                                >
+                                  {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                                </ActionButton>
+                              )}
                               <ActionButton
-                                onClick={() => handleUpdateGoal(goal)}
+                                onClick={() => {
+                                  setGoalToDelete(goal);
+                                  setOpenDeleteDialog(true);
+                                }}
                                 disabled={actionLoading}
-                                color="primary"
-                                width={100}
+                                color="error"
                               >
-                                {actionLoading ? <CircularProgress size={24} /> : <EditIcon />}
+                                {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
                               </ActionButton>
-                            )}
+                            </Box>
+                          </TableCell>
+                        </StyledTableRow>
+                      ))}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
 
-                            <ActionButton
-                              onClick={() => {
-                                setGoalToDelete(goal);
-                                setOpenDeleteDialog(true);
-                              }}
-                              disabled={actionLoading}
-                              color="error"
-                            >
-                              {actionLoading ? <CircularProgress size={24} /> : <DeleteIcon />}
-                            </ActionButton>
-                          </Box>
-                        </TableCell>
-                      </StyledTableRow>
-                    ))}
-            </TableBody>
-          </Table>
-        </StyledTableContainer>
+          <TablePagination
+            component="div"
+            count={filteredGoals.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[5, 10, 20, 50]}
+          />
 
-        <TablePagination
-          component="div"
-          count={goals.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          rowsPerPageOptions={[5, 10, 20, 50]}
-        />
-
-        {/* Create/Edit Goal Dialog */}
-        <StyledDialog open={open} onClose={resetForm} fullWidth maxWidth="md">
-          <DialogTitle>{isUpdate ? "Update Goal" : "Create New Goal"}</DialogTitle>
-          <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Project Title"
-                  name="projectTitle"
-                  fullWidth
-                  value={newGoal.projectTitle}
-                  onChange={handleInputChange}
-                  error={!!formErrors.projectTitle}
-                  helperText={formErrors.projectTitle}
-                  disabled={actionLoading}
-                />
-              </Grid>
-
-              <Grid item xs={6}>
-                <TextField
-                  label="Start Date"
-                  type="date"
-                  name="startDate"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  value={newGoal.startDate}
-                  onChange={handleInputChange}
-                  error={!!formErrors.startDate}
-                  helperText={formErrors.startDate}
-                  disabled={actionLoading}
-                />
-              </Grid>
-
-              <Grid item xs={6}>
-                <TextField
-                  label="Due Date"
-                  type="date"
-                  name="dueDate"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  value={newGoal.dueDate}
-                  onChange={handleInputChange}
-                  error={!!formErrors.dueDate}
-                  helperText={formErrors.dueDate}
-                  disabled={actionLoading}
-                />
-              </Grid>
-
-              <Grid item xs={6}>
-                <FormControl fullWidth error={!!formErrors.teamId} disabled={actionLoading}>
-                  <InputLabel>Team</InputLabel>
-                  <Select
-                    name="teamId"
-                    value={newGoal.teamId}
+          {/* Create/Edit Goal Dialog */}
+          <StyledDialog open={open} onClose={resetForm} fullWidth maxWidth="md">
+            <DialogTitle>{isUpdate ? "Update Goal" : "Create New Goal"}</DialogTitle>
+            <DialogContent>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Project Title"
+                    name="projectTitle"
+                    fullWidth
+                    value={newGoal.projectTitle}
                     onChange={handleInputChange}
-                    label="Team"
-                  >
-                    {teams.map(team => (
-                      <MenuItem key={team._id} value={team._id}>{team.teamName}</MenuItem>
-                    ))}
-                  </Select>
-                  {formErrors.teamId && <FormHelperText>{formErrors.teamId}</FormHelperText>}
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={6}>
-                <FormControl fullWidth disabled={actionLoading}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    name="status"
-                    value={newGoal.status}
+                    error={!!formErrors.projectTitle}
+                    helperText={formErrors.projectTitle}
+                    disabled={actionLoading}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Start Date"
+                    type="date"
+                    name="startDate"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    value={newGoal.startDate}
                     onChange={handleInputChange}
-                    label="Status"
-                    disabled
-                  >
-                    <MenuItem value="scheduled">Scheduled</MenuItem>
-                    <MenuItem value="in-progress">In Progress</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                  </Select>
-                </FormControl>
+                    error={!!formErrors.startDate}
+                    helperText={formErrors.startDate}
+                    disabled={actionLoading}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Due Date"
+                    type="date"
+                    name="dueDate"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    value={newGoal.dueDate}
+                    onChange={handleInputChange}
+                    error={!!formErrors.dueDate}
+                    helperText={formErrors.dueDate}
+                    disabled={actionLoading}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth error={!!formErrors.teamId} disabled={actionLoading}>
+                    <InputLabel>Team</InputLabel>
+                    <Select
+                      name="teamId"
+                      value={newGoal.teamId}
+                      onChange={handleInputChange}
+                      label="Team"
+                    >
+                      {teams.map(team => (
+                        <MenuItem key={team._id} value={team._id}>{team.teamName}</MenuItem>
+                      ))}
+                    </Select>
+                    {formErrors.teamId && <FormHelperText>{formErrors.teamId}</FormHelperText>}
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth disabled={actionLoading}>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      name="status"
+                      value={newGoal.status}
+                      onChange={handleInputChange}
+                      label="Status"
+                      disabled
+                    >
+                      <MenuItem value="scheduled">Scheduled</MenuItem>
+                      <MenuItem value="in-progress">In Progress</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Description"
+                    name="description"
+                    fullWidth
+                    multiline
+                    rows={4}
+                    value={newGoal.description}
+                    onChange={handleInputChange}
+                    disabled={actionLoading}
+                  />
+                </Grid>
               </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
+              <GradientButton
+                onClick={handleSaveGoal}
+                disabled={actionLoading}
+                variant="contained"
+              >
+                {actionLoading ? <CircularProgress size={24} color="inherit" /> : isUpdate ? "Update" : "Create"}
+              </GradientButton>
+            </DialogActions>
+          </StyledDialog>
 
-              <Grid item xs={12}>
-                <TextField
-                  label="Description"
-                  name="description"
-                  fullWidth
-                  multiline
-                  rows={4}
-                  value={newGoal.description}
-                  onChange={handleInputChange}
-                  disabled={actionLoading}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
-            <GradientButton
-              onClick={handleSaveGoal}
-              disabled={actionLoading}
-              variant="contained"
-            >
-              {actionLoading ? <CircularProgress size={24} color="inherit" /> : isUpdate ? "Update" : "Create"}
-            </GradientButton>
-          </DialogActions>
-        </StyledDialog>
-
-        {/* Delete Confirmation Dialog */}
-        <StyledDialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs">
-          <DialogTitle>Confirm Deletion</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete the goal "{goalToDelete?.projectTitle}"?
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>
-              Cancel
-            </Button>
-            <DeleteGradientButton onClick={handleDeleteGoal} disabled={actionLoading} variant="contained" color="error">
-              {actionLoading ? <CircularProgress size={24} /> : "Delete"}
-            </DeleteGradientButton>
-          </DialogActions>
-        </StyledDialog>
-
-        {/* View Tasks Dialog */}
-        <StyledDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} fullWidth maxWidth="md">
-          <DialogTitle>Tasks for Goal: {selectedGoal?.projectTitle}</DialogTitle>
-          <DialogContent dividers>
-            {loadingTasks ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : tasksForView.length === 0 ? (
-              <Typography variant="body1">No tasks found for this goal.</Typography>
-            ) : (
-              <TableContainer component={Paper}>
-                <Table size="small" aria-label="tasks table">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell><strong>Task Title</strong></TableCell>
-                      <TableCell><strong>Start Date</strong></TableCell>
-                      <TableCell><strong>Due Date</strong></TableCell>
-                      <TableCell><strong>Status</strong></TableCell>
-                      <TableCell><strong>Priority</strong></TableCell>
-                      <TableCell><strong>Employee</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {tasksForView.map(task => (
-                      <TableRow key={task._id}>
-                        <TableCell>{task.taskTitle}</TableCell>
-                        <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{task.status}</TableCell>
-                        <TableCell>{task.priority}</TableCell>
-                        <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" color="success.main" textAlign="center">
-                All tasks are done 🎉
+          {/* Delete Confirmation Dialog */}
+          <StyledDialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)} maxWidth="xs">
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogContent>
+              <Typography>
+                Are you sure you want to delete the goal "{goalToDelete?.projectTitle}"?
               </Typography>
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
-          </DialogActions>
-        </StyledDialog>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenDeleteDialog(false)} disabled={actionLoading}>
+                Cancel
+              </Button>
+              <DeleteGradientButton onClick={handleDeleteGoal} disabled={actionLoading} variant="contained" color="error">
+                {actionLoading ? <CircularProgress size={24} /> : "Delete"}
+              </DeleteGradientButton>
+            </DialogActions>
+          </StyledDialog>
 
-        {/* Snackbars */}
-        <Snackbar
-          open={!!successMessage}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
-            {successMessage}
-          </Alert>
-        </Snackbar>
+          {/* View Tasks Dialog */}
+          <StyledDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} fullWidth maxWidth="md">
+            <DialogTitle>Tasks for Goal: {selectedGoal?.projectTitle}</DialogTitle>
+            <DialogContent dividers>
+              {loadingTasks ? (
+                <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                  <CircularProgress />
+                </Box>
+              ) : tasksForView.length === 0 ? (
+                <Typography variant="body1">No tasks found for this goal.</Typography>
+              ) : (
+                <TableContainer component={Paper}>
+                  <Table size="small" aria-label="tasks table">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Task Title</strong></TableCell>
+                        <TableCell><strong>Start Date</strong></TableCell>
+                        <TableCell><strong>Due Date</strong></TableCell>
+                        <TableCell><strong>Status</strong></TableCell>
+                        <TableCell><strong>Priority</strong></TableCell>
+                        <TableCell><strong>Employee</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {tasksForView.map(task => (
+                        <TableRow key={task._id}>
+                          <TableCell>{task.taskTitle}</TableCell>
+                          <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
+                          <TableCell>{task.status}</TableCell>
+                          <TableCell>{task.priority}</TableCell>
+                          <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" color="success.main" textAlign="center">
+                  All tasks are done 🎉
+                </Typography>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
+            </DialogActions>
+          </StyledDialog>
 
-        <Snackbar
-          open={!!error}
-          autoHideDuration={6000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        >
-          <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: "100%" }}>
-            {error}
-          </Alert>
-        </Snackbar>
-      </StyledContainer>
+          {/* Snackbars */}
+          <Snackbar
+            open={!!successMessage}
+            autoHideDuration={6000}
+            onClose={handleCloseSnackbar}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
+              {successMessage}
+            </Alert>
+          </Snackbar>
+          <Snackbar
+            open={!!error}
+            autoHideDuration={6000}
+            onClose={handleCloseSnackbar}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+          >
+            <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: "100%" }}>
+              {error}
+            </Alert>
+          </Snackbar>
+        </StyledContainer>
       </Container>
     </ManagerLayout>
   );
