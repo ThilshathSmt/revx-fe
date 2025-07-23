@@ -14,14 +14,47 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,Avatar,imagePreview
+  MenuItem,
+  Avatar,
+  Card,
+  CardContent,
+  Chip,
+  Badge,
+  Fade,
+  Skeleton,
+  Container,
+  Stack,
+  Divider,
+  IconButton,
+  Tooltip,
+  LinearProgress,
+  TableContainer,
+  useTheme,
+  alpha
 } from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  TrendingUp as TrendingUpIcon,
+  Assignment as AssignmentIcon,
+  People as PeopleIcon,
+  Timeline as TimelineIcon,
+  FilterList as FilterListIcon,
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+  Schedule as ScheduleIcon,
+  PlayCircle as PlayCircleIcon
+} from '@mui/icons-material';
 import { useRouter } from "next/router";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import HRLayout from '../../components/HRLayout';  // reuse layout or use HRLayout if available
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import HRLayout from '../../components/HRLayout';
 import { useAuth } from '../../hooks/useAuth';
 
-const COLORS = ['#4caf50', '#2196f3', '#f44336']; // colors for charts
+const COLORS = ['#4caf50', '#2196f3', '#ff9800', '#f44336'];
+const STATUS_COLORS = {
+  completed: '#4caf50',
+  'in-progress': '#2196f3', 
+  scheduled: '#f0f0f0ff'
+};
 
 const HRDashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -30,6 +63,7 @@ const HRDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const theme = useTheme();
 
   // Filters for Goals and Tasks
   const [selectedManager, setSelectedManager] = useState('');
@@ -45,8 +79,6 @@ const HRDashboard = () => {
       router.push('/auth/signin');
       return;
     }
-    
-    
 
     const fetchData = async () => {
       try {
@@ -142,237 +174,596 @@ const HRDashboard = () => {
   // Unique projects from goals for task project filter
   const uniqueProjects = Array.from(new Map(goals.map(goal => [goal._id, goal])).values());
 
-  if (loading) return <CircularProgress sx={{ display: 'block', margin: 'auto', mt: 5 }} />;
-  if (error) return <Typography color="error" sx={{ textAlign: 'center', mt: 5 }}>{error}</Typography>;
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed': return <CheckCircleIcon sx={{ fontSize: 16 }} />;
+      case 'in-progress': return <PlayCircleIcon sx={{ fontSize: 16 }} />;
+      case 'scheduled': return <ScheduleIcon sx={{ fontSize: 16 }} />;
+      default: return null;
+    }
+  };
+
+  const getStatusChip = (status) => (
+    <Chip
+      icon={getStatusIcon(status)}
+      label={status.charAt(0).toUpperCase() + status.slice(1)}
+      size="small"
+      sx={{
+        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+        color: STATUS_COLORS[status] || '#666',
+        fontWeight: 500,
+        '& .MuiChip-icon': {
+          color: STATUS_COLORS[status] || '#666',
+        }
+      }}
+    />
+  );
+
+  const StatCard = ({ title, value, icon, color, subtitle }) => (
+    <Card 
+      elevation={0}
+      sx={{ 
+        height: '100%',
+        background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
+        border: `1px solid ${alpha(color, 0.2)}`,
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: `0 8px 25px ${alpha(color, 0.15)}`,
+        }
+      }}
+    >
+      <CardContent sx={{ p: 3 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+          <Box>
+            <Typography variant="h3" sx={{ fontWeight: 700, color: color, mb: 0.5 }}>
+              {value}
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+              {title}
+            </Typography>
+            {subtitle && (
+              <Typography variant="body2" color="text.secondary">
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: alpha(color, 0.1),
+              color: color,
+            }}
+          >
+            {icon}
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <HRLayout>
+        <Container maxWidth="xl" sx={{ py: 4 }}>
+          <Stack spacing={3}>
+            <Skeleton variant="rectangular" height={200} />
+            <Grid container spacing={3}>
+              {[1, 2, 3, 4].map((item) => (
+                <Grid item xs={12} sm={6} md={3} key={item}>
+                  <Skeleton variant="rectangular" height={150} />
+                </Grid>
+              ))}
+            </Grid>
+            <Skeleton variant="rectangular" height={400} />
+          </Stack>
+        </Container>
+      </HRLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <HRLayout>
+        <Container maxWidth="xl" sx={{ py: 4, textAlign: 'center' }}>
+          <Typography color="error" variant="h6">{error}</Typography>
+        </Container>
+      </HRLayout>
+    );
+  }
 
   return (
     <HRLayout>
-      <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-        {/* Header */}
-        {/* Header Section */}
-        <Grid container spacing={4} alignItems="center" sx={{ mb: 4 }}>
-          <Grid item xs={12} md={8}>
-            <Typography variant="h3" component="h1" gutterBottom>
-              Welcome, {user?.username}!
-            </Typography>
-            <Typography variant="h6" color="textSecondary">
-              {user?.email}
-            </Typography>
-          </Grid>
-          <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Avatar
-              src={imagePreview || '/default-avatar.png'}
-              sx={{ width: 120, height: 120, boxShadow: 3 }}
-            />
-          </Grid>
-        </Grid>
-
-        {/* Manager Goals Progress Rates */}
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h5" gutterBottom>Managers' Goal Progress Rates (%)</Typography>
-          {managerGoalChartData.length === 0 ? (
-            <Typography>No goals data available</Typography>
-          ) : (
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart
-                data={managerGoalChartData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+      <Box sx={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(10px)',
+        }
+      }}>
+        <Container maxWidth="xl" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
+          <Fade in timeout={1000}>
+            <Box>
+              {/* Enhanced Header */}
+              <Card 
+                elevation={0}
+                sx={{ 
+                  mb: 4,
+                  background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                  color: 'white',
+                  overflow: 'hidden',
+                  position: 'relative'
+                }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="managerName" angle={-45} textAnchor="end" interval={0} height={80} />
-                <YAxis domain={[0, 100]} tickFormatter={val => `${val}%`} />
-                <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
-                <Bar dataKey="Completion" stackId="a" fill="#4caf50" />
-                <Bar dataKey="In Progress" stackId="a" fill="#2196f3" />
-                <Bar dataKey="Scheduled" stackId="a" fill="#f44336" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Paper>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: '200px',
+                    height: '200px',
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: '50%',
+                    transform: 'translate(50%, -50%)',
+                  }}
+                />
+                <CardContent sx={{ p: 4, position: 'relative', zIndex: 1 }}>
+                  <Grid container spacing={4} alignItems="center">
+                    <Grid item xs={12} md={8}>
+                      <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                        <DashboardIcon sx={{ fontSize: 40 }} />
+                        <Typography variant="h3" sx={{ fontWeight: 700 }}>
+                          HR Dashboard
+                        </Typography>
+                      </Stack>
+                      <Typography variant="h5" sx={{ opacity: 0.9, mb: 1 }}>
+                        Welcome back, {user?.username}!
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.8 }}>
+                        {user?.email}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Badge
+                        overlap="circular"
+                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                        badgeContent={
+                          <Box
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              backgroundColor: '#4caf50',
+                              border: '3px solid white',
+                            }}
+                          />
+                        }
+                      >
+                        <Avatar
+                          src={imagePreview || '/default-avatar.png'}
+                          sx={{ 
+                            width: 120, 
+                            height: 120, 
+                            border: '4px solid rgba(255,255,255,0.3)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                          }}
+                        />
+                      </Badge>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
 
-        {/* Task Status Distribution */}
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h5" gutterBottom>Task Status Distribution</Typography>
-          {tasks.length === 0 ? (
-            <Typography>No tasks data available</Typography>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={taskChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {taskChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value, name) => [`${value}`, `${name}`]} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </Paper>
+              {/* Stats Cards */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <StatCard
+                    title="Total Goals"
+                    value={goals.length}
+                    icon={<TrendingUpIcon sx={{ fontSize: 28 }} />}
+                    color="#4caf50"
+                    subtitle="Active projects"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <StatCard
+                    title="Total Tasks"
+                    value={tasks.length}
+                    icon={<AssignmentIcon sx={{ fontSize: 28 }} />}
+                    color="#2196f3"
+                    subtitle="All assignments"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <StatCard
+                    title="Active Managers"
+                    value={Object.keys(goalsByManager).length}
+                    icon={<PeopleIcon sx={{ fontSize: 28 }} />}
+                    color="#ff9800"
+                    subtitle="Managing projects"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <StatCard
+                    title="Completion Rate"
+                    value={`${goals.length > 0 ? Math.round((goals.filter(g => g.status === 'completed').length / goals.length) * 100) : 0}%`}
+                    icon={<TimelineIcon sx={{ fontSize: 28 }} />}
+                    color="#9c27b0"
+                    subtitle="Overall progress"
+                  />
+                </Grid>
+              </Grid>
 
-        {/* Detailed Tables */}
-        <Grid container spacing={3}>
-          {/* Goals Table */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ maxHeight: 500, overflowY: 'auto', p: 2 }}>
-              <Typography variant="h6" gutterBottom>All Goals Details</Typography>
+              {/* Charts Section */}
+              <Grid container spacing={3} sx={{ mb: 4 }}>
+                {/* Manager Goals Progress */}
+                <Grid item xs={12} lg={8}>
+                  <Card elevation={0} sx={{ height: 450, border: '1px solid', borderColor: 'divider' }}>
+                    <CardContent sx={{ p: 3, height: '100%' }}>
+                      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+                        <TrendingUpIcon color="primary" />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          Manager Goal Progress Rates
+                        </Typography>
+                      </Stack>
+                      {managerGoalChartData.length === 0 ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+                          <Typography color="text.secondary">No goals data available</Typography>
+                        </Box>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={350}>
+                          <BarChart
+                            data={managerGoalChartData}
+                            margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                            <XAxis 
+                              dataKey="managerName" 
+                              angle={-45} 
+                              textAnchor="end" 
+                              interval={0} 
+                              height={80}
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis 
+                              domain={[0, 100]} 
+                              tickFormatter={val => `${val}%`}
+                              tick={{ fontSize: 12 }}
+                            />
+                            <Tooltip 
+                              formatter={(value) => `${value.toFixed(1)}%`}
+                              contentStyle={{
+                                backgroundColor: 'white',
+                                border: '1px solid #ccc',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                              }}
+                            />
+                            <Bar dataKey="Completion" stackId="a" fill="#4caf50" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="In Progress" stackId="a" fill="#2196f3" radius={[0, 0, 0, 0]} />
+                            <Bar dataKey="Scheduled" stackId="a" fill="#0c4672" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-              {/* Filters */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <FormControl sx={{ minWidth: 180 }}>
-                  <InputLabel id="filter-manager-label">Filter by Manager</InputLabel>
-                  <Select
-                    labelId="filter-manager-label"
-                    value={selectedManager}
-                    label="Filter by Manager"
-                    onChange={(e) => setSelectedManager(e.target.value)}
-                  >
-                    <MenuItem value="">
-                      <em>All Managers</em>
-                    </MenuItem>
-                    {managersForFilter.map(manager => (
-                      <MenuItem key={manager.id} value={manager.id}>{manager.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                {/* Task Distribution */}
+                <Grid item xs={12} lg={4}>
+                  <Card elevation={0} sx={{ height: 450, border: '1px solid', borderColor: 'divider' }}>
+                    <CardContent sx={{ p: 3, height: '100%' }}>
+                      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+                        <AssignmentIcon color="primary" />
+                        <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                          Task Distribution
+                        </Typography>
+                      </Stack>
+                      {tasks.length === 0 ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+                          <Typography color="text.secondary">No tasks data available</Typography>
+                        </Box>
+                      ) : (
+                        <Box>
+                          <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                              <Pie
+                                data={taskChartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={80}
+                                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                              >
+                                {taskChartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <Stack spacing={1} mt={2}>
+                            {taskChartData.map((entry, index) => (
+                              <Stack key={entry.name} direction="row" alignItems="center" spacing={2}>
+                                <Box
+                                  sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: COLORS[index % COLORS.length],
+                                  }}
+                                />
+                                <Typography variant="body2" sx={{ flex: 1 }}>
+                                  {entry.name}
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {entry.value}
+                                </Typography>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        </Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
 
-                <FormControl sx={{ minWidth: 180 }}>
-                  <InputLabel id="filter-goal-status-label">Filter by Goal Status</InputLabel>
-                  <Select
-                    labelId="filter-goal-status-label"
-                    value={selectedGoalStatus}
-                    label="Filter by Goal Status"
-                    onChange={(e) => setSelectedGoalStatus(e.target.value)}
-                  >
-                    <MenuItem value="">
-                      <em>All Statuses</em>
-                    </MenuItem>
-                    <MenuItem value="scheduled">Scheduled</MenuItem>
-                    <MenuItem value="in-progress">In Progress</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+              {/* Data Tables */}
+              <Grid container spacing={3}>
+                {/* Goals Table */}
+                <Grid item xs={12} lg={6}>
+                  <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+                    <CardContent sx={{ p: 0 }}>
+                      <Box sx={{ p: 3, pb: 2 }}>
+                        <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+                          <TrendingUpIcon color="primary" />
+                          <Typography variant="h6" sx={{ fontWeight: 600, flex: 1 }}>
+                            Goals Overview
+                          </Typography>
+                          <Chip
+                            icon={<FilterListIcon />}
+                            label={`${filteredGoals.length} of ${goals.length}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Stack>
 
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Project Title</TableCell>
-                    <TableCell>Manager</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Team</TableCell>
-                    <TableCell>Start Date</TableCell>
-                    <TableCell>Due Date</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredGoals.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} sx={{ textAlign: 'center' }}>No goals found with current filters.</TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredGoals.map(goal => (
-                      <TableRow key={goal._id} hover>
-                        <TableCell>{goal.projectTitle}</TableCell>
-                        <TableCell>{goal.managerId?.username || "N/A"}</TableCell>
-                        <TableCell>{goal.status}</TableCell>
-                        <TableCell>{goal.teamId?.teamName || "N/A"}</TableCell>
-                        <TableCell>{new Date(goal.startDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{new Date(goal.dueDate).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Paper>
-          </Grid>
+                        {/* Filters */}
+                        <Stack direction="row" spacing={2} flexWrap="wrap">
+                          <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <InputLabel>Manager</InputLabel>
+                            <Select
+                              value={selectedManager}
+                              label="Manager"
+                              onChange={(e) => setSelectedManager(e.target.value)}
+                            >
+                              <MenuItem value="">All Managers</MenuItem>
+                              {managersForFilter.map(manager => (
+                                <MenuItem key={manager.id} value={manager.id}>
+                                  {manager.name}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
 
-          {/* Tasks Table */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ maxHeight: 500, overflowY: 'auto', p: 2 }}>
-              <Typography variant="h6" gutterBottom>All Tasks Details</Typography>
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                              value={selectedGoalStatus}
+                              label="Status"
+                              onChange={(e) => setSelectedGoalStatus(e.target.value)}
+                            >
+                              <MenuItem value="">All Status</MenuItem>
+                              <MenuItem value="scheduled">Scheduled</MenuItem>
+                              <MenuItem value="in-progress">In Progress</MenuItem>
+                              <MenuItem value="completed">Completed</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Stack>
+                      </Box>
 
-              {/* Filters */}
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <FormControl sx={{ minWidth: 200 }}>
-                  <InputLabel id="filter-project-label">Filter by Project</InputLabel>
-                  <Select
-                    labelId="filter-project-label"
-                    value={selectedProjectId}
-                    label="Filter by Project"
-                    onChange={(e) => setSelectedProjectId(e.target.value)}
-                  >
-                    <MenuItem value="">
-                      <em>All Projects</em>
-                    </MenuItem>
-                    {uniqueProjects.map(project => (
-                      <MenuItem key={project._id} value={project._id}>
-                        {project.projectTitle}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      <TableContainer sx={{ maxHeight: 400 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Project
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Manager
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Status
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Due Date
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {filteredGoals.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
+                                  <Typography color="text.secondary">
+                                    No goals match your filters
+                                  </Typography>
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              filteredGoals.map(goal => (
+                                <TableRow 
+                                  key={goal._id} 
+                                  hover
+                                  sx={{ '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.04) } }}
+                                >
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                      {goal.projectTitle}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {goal.teamId?.teamName || "No team"}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {goal.managerId?.username || "N/A"}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    {getStatusChip(goal.status)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {new Date(goal.dueDate).toLocaleDateString()}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
 
-                <FormControl sx={{ minWidth: 180 }}>
-                  <InputLabel id="filter-task-status-label">Filter by Task Status</InputLabel>
-                  <Select
-                    labelId="filter-task-status-label"
-                    value={selectedTaskStatus}
-                    label="Filter by Task Status"
-                    onChange={(e) => setSelectedTaskStatus(e.target.value)}
-                  >
-                    <MenuItem value="">
-                      <em>All Statuses</em>
-                    </MenuItem>
-                    <MenuItem value="scheduled">Scheduled</MenuItem>
-                    <MenuItem value="in-progress">In Progress</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+                {/* Tasks Table */}
+                <Grid item xs={12} lg={6}>
+                  <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+                    <CardContent sx={{ p: 0 }}>
+                      <Box sx={{ p: 3, pb: 2 }}>
+                        <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+                          <AssignmentIcon color="primary" />
+                          <Typography variant="h6" sx={{ fontWeight: 600, flex: 1 }}>
+                            Tasks Overview
+                          </Typography>
+                          <Chip
+                            icon={<FilterListIcon />}
+                            label={`${filteredTasks.length} of ${tasks.length}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Stack>
 
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Task Title</TableCell>
-                    <TableCell>Project</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Priority</TableCell>
-                    <TableCell>Assigned Employee</TableCell>
-                    <TableCell>Start Date</TableCell>
-                    <TableCell>Due Date</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredTasks.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} sx={{ textAlign: 'center' }}>No tasks found with current filters.</TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredTasks.map(task => (
-                      <TableRow key={task._id} hover>
-                        <TableCell>{task.taskTitle}</TableCell>
-                        <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
-                        <TableCell>{task.status}</TableCell>
-                        <TableCell>{task.priority}</TableCell>
-                        <TableCell>{task.employeeId?.username || "N/A"}</TableCell>
-                        <TableCell>{new Date(task.startDate).toLocaleDateString()}</TableCell>
-                        <TableCell>{new Date(task.dueDate).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </Paper>
-          </Grid>
-        </Grid>
+                        {/* Filters */}
+                        <Stack direction="row" spacing={2} flexWrap="wrap">
+                          <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <InputLabel>Project</InputLabel>
+                            <Select
+                              value={selectedProjectId}
+                              label="Project"
+                              onChange={(e) => setSelectedProjectId(e.target.value)}
+                            >
+                              <MenuItem value="">All Projects</MenuItem>
+                              {uniqueProjects.map(project => (
+                                <MenuItem key={project._id} value={project._id}>
+                                  {project.projectTitle}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+
+                          <FormControl size="small" sx={{ minWidth: 140 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                              value={selectedTaskStatus}
+                              label="Status"
+                              onChange={(e) => setSelectedTaskStatus(e.target.value)}
+                            >
+                              <MenuItem value="">All Status</MenuItem>
+                              <MenuItem value="scheduled">Scheduled</MenuItem>
+                              <MenuItem value="in-progress">In Progress</MenuItem>
+                              <MenuItem value="completed">Completed</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Stack>
+                      </Box>
+
+                      <TableContainer sx={{ maxHeight: 400 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Task
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Employee
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Status
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600, backgroundColor: '#f8f9fa' }}>
+                                Priority
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {filteredTasks.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
+                                  <Typography color="text.secondary">
+                                    No tasks match your filters
+                                  </Typography>
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              filteredTasks.map(task => (
+                                <TableRow 
+                                  key={task._id} 
+                                  hover
+                                  sx={{ '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.04) } }}
+                                >
+                                  <TableCell>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                      {task.taskTitle}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {task.projectId?.projectTitle || "No project"}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Typography variant="body2">
+                                      {task.employeeId?.username || "Unassigned"}
+                                    </Typography>
+                                  </TableCell>
+                                  <TableCell>
+                                    {getStatusChip(task.status)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      label={task.priority}
+                                      size="small"
+                                      color={
+                                        task.priority === 'high' ? 'error' :
+                                        task.priority === 'medium' ? 'warning' : 'default'
+                                      }
+                                      variant="outlined"
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </Box>
+          </Fade>
+        </Container>
       </Box>
     </HRLayout>
   );
