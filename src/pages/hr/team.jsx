@@ -35,25 +35,28 @@ import {
   CircularProgress,
   Avatar,
   Fade,
-  styled
+  styled,
+  Tooltip,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import ApartmentIcon from "@mui/icons-material/Apartment";
+import GroupIcon from '@mui/icons-material/Group';
+import BusinessIcon from '@mui/icons-material/Business';
 import HRLayout from "../../components/HRLayout";
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import ApartmentIcon from '@mui/icons-material/Apartment';
 
 // Styled components for enhanced UI
 const StyledCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
-  color: 'white',
+  background: "linear-gradient(45deg, #0c4672, #00bcd4)",
+  color: "white",
   marginBottom: theme.spacing(3),
   borderRadius: 16,
-  boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+  boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
 }));
 
 // Utility function for minimum delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const withMinimumDelay = async (fn, minDelay = 1000) => {
   const startTime = Date.now();
   const result = await fn();
@@ -63,6 +66,119 @@ const withMinimumDelay = async (fn, minDelay = 1000) => {
   return result;
 };
 
+// TeamCard component with improved UI
+const TeamCard = ({ team, onEdit, onDelete, actionLoading }) => {
+  // Generate initials for member avatars (e.g., first letters of username)
+  const getInitials = (name) => {
+    if (!name) return "";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  const memberCount = team.members.length;
+
+  return (
+    <Card
+      elevation={6}
+      sx={{
+        borderRadius: 3,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        transition: "transform 0.2s ease",
+        "&:hover": {
+          transform: "scale(1.04)",
+          boxShadow: 8,
+          cursor: "pointer",
+          bgcolor: "background.paper",
+        },
+      }}
+      onClick={() => onEdit(team)}
+      tabIndex={0}
+      role="button"
+      aria-label={`View or Edit team: ${team.teamName}`}
+    >
+      <CardContent sx={{ flexGrow: 1 }}>
+        <Typography variant="h5" fontWeight="bold" gutterBottom noWrap>
+          {team.teamName}
+        </Typography>
+
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <BusinessIcon color="action" sx={{ mr: 0.5 }} />
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {team.departmentId?.departmentName || "No Department"}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+          <GroupIcon color="action" />
+          <Typography variant="body2" color="text.secondary">
+            {memberCount} Member{memberCount !== 1 ? "s" : ""}
+          </Typography>
+        </Box>
+
+        {/* Avatars for members */}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+          {team.members.slice(0, 5).map((member) => (
+            <Tooltip key={member._id} title={member.username} arrow>
+              <Avatar
+                sx={{ width: 32, height: 32, fontSize: 14, bgcolor: "primary.main" }}
+                alt={member.username}
+                aria-label={`Team member: ${member.username}`}
+              >
+                {getInitials(member.username)}
+              </Avatar>
+            </Tooltip>
+          ))}
+          {memberCount > 5 && (
+            <Avatar sx={{ width: 32, height: 32, fontSize: 14, bgcolor: "grey.500" }}>
+              +{memberCount - 5}
+            </Avatar>
+          )}
+        </Box>
+      </CardContent>
+
+      {/* Action buttons */}
+      <CardActions
+        sx={{ justifyContent: "flex-end", pt: 0, px: 2, pb: 1 }}
+        onClick={(e) => e.stopPropagation()} // Prevent card click when clicking buttons
+      >
+        <Tooltip title="Edit Team">
+          <span>
+            <Button
+              variant="outlined"
+              startIcon={actionLoading ? <CircularProgress size={16} /> : <EditIcon />}
+              onClick={() => onEdit(team)}
+              disabled={actionLoading}
+              size="small"
+            >
+              Edit
+            </Button>
+          </span>
+        </Tooltip>
+
+        <Tooltip title="Delete Team">
+          <span>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={actionLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
+              onClick={() => onDelete(team)}
+              disabled={actionLoading}
+              sx={{ ml: 1 }}
+              size="small"
+            >
+              Delete
+            </Button>
+          </span>
+        </Tooltip>
+      </CardActions>
+    </Card>
+  );
+};
 
 const TeamManagement = () => {
   const { user } = useAuth();
@@ -75,18 +191,18 @@ const TeamManagement = () => {
   const [newTeam, setNewTeam] = useState({
     teamName: "",
     members: [],
-    departmentId: ""
+    departmentId: "",
   });
   const [formErrors, setFormErrors] = useState({
     teamName: "",
     departmentId: "",
-    members: ""
+    members: "",
   });
   // Add state for department filter dropdown
   const [filterDepartmentId, setFilterDepartmentId] = useState("");
   // Filtered teams based on department filter
   const filteredTeams = filterDepartmentId
-    ? teams.filter(team => team.departmentId?._id === filterDepartmentId)
+    ? teams.filter((team) => team.departmentId?._id === filterDepartmentId)
     : teams;
 
   const [open, setOpen] = useState(false);
@@ -99,7 +215,6 @@ const TeamManagement = () => {
   const [teamToDelete, setTeamToDelete] = useState(null);
   const router = useRouter();
 
-
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/");
@@ -108,16 +223,11 @@ const TeamManagement = () => {
     }
   }, [user, router]);
 
-
   const fetchInitialData = async () => {
     try {
       setLoading(true);
       await withMinimumDelay(async () => {
-        await Promise.all([
-          fetchTeams(),
-          fetchEmployees(),
-          fetchDepartments()
-        ]);
+        await Promise.all([fetchTeams(), fetchEmployees(), fetchDepartments()]);
       });
     } catch (err) {
       setError("Failed to load initial data");
@@ -126,17 +236,14 @@ const TeamManagement = () => {
     }
   };
 
-
   // Pagination based on filteredTeams now
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
   const currentTeams = filteredTeams.slice(indexOfFirstTeam, indexOfLastTeam);
 
-
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
   };
-
 
   const fetchTeams = async () => {
     try {
@@ -150,20 +257,18 @@ const TeamManagement = () => {
     }
   };
 
-
   const fetchEmployees = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
         headers: { Authorization: `Bearer ${user.token}` },
       });
-      const employees = response.data.filter(u => u.role === 'employee');
+      const employees = response.data.filter((u) => u.role === "employee");
       setEmployees(employees);
     } catch (err) {
       console.error("Failed to fetch employees:", err);
       throw err;
     }
   };
-
 
   const fetchDepartments = async () => {
     try {
@@ -177,42 +282,35 @@ const TeamManagement = () => {
     }
   };
 
-
   const validateForm = () => {
     let valid = true;
     const newErrors = {
       teamName: "",
       departmentId: "",
-      members: ""
+      members: "",
     };
-
 
     if (!newTeam.teamName.trim()) {
       newErrors.teamName = "Team name is required";
       valid = false;
     }
 
-
     if (!newTeam.departmentId) {
       newErrors.departmentId = "Department is required";
       valid = false;
     }
-
 
     if (newTeam.members.length === 0) {
       newErrors.members = "At least one member is required";
       valid = false;
     }
 
-
     setFormErrors(newErrors);
     return valid;
   };
 
-
   const handleSaveTeam = async () => {
     if (!validateForm()) return;
-
 
     setActionLoading(true);
     try {
@@ -221,13 +319,12 @@ const TeamManagement = () => {
           ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/${selectedTeam._id}`
           : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams/create`;
 
-
         await axios({
           method: isUpdate ? "put" : "post",
           url,
           data: {
             ...newTeam,
-            createdBy: user.id
+            createdBy: user.id,
           },
           headers: { Authorization: `Bearer ${user.token}` },
         });
@@ -242,24 +339,21 @@ const TeamManagement = () => {
     }
   };
 
-
   const handleUpdateTeam = (team) => {
     setNewTeam({
       teamName: team.teamName,
-      members: team.members.map(m => m._id),
-      departmentId: team.departmentId?._id || ""
+      members: team.members.map((m) => m._id),
+      departmentId: team.departmentId?._id || "",
     });
     setIsUpdate(true);
     setSelectedTeam(team);
     setOpen(true);
   };
 
-
   const handleDeleteClick = (team) => {
     setTeamToDelete(team);
     setDeleteDialogOpen(true);
   };
-
 
   const handleDeleteTeam = async () => {
     if (!teamToDelete) return;
@@ -282,42 +376,38 @@ const TeamManagement = () => {
     }
   };
 
-
   const handleCancelDelete = () => {
     setDeleteDialogOpen(false);
     setTeamToDelete(null);
   };
 
-
   const handleMemberChange = (event) => {
     const { value } = event.target;
     setNewTeam({
       ...newTeam,
-      members: typeof value === 'string' ? value.split(',') : value,
+      members: typeof value === "string" ? value.split(",") : value,
     });
     setFormErrors({
       ...formErrors,
-      members: ""
+      members: "",
     });
   };
-
 
   const handleCloseSnackbar = () => {
     setError(null);
     setSuccessMessage(null);
   };
 
-
   const resetForm = () => {
     setNewTeam({
       teamName: "",
       members: [],
-      departmentId: ""
+      departmentId: "",
     });
     setFormErrors({
       teamName: "",
       departmentId: "",
-      members: ""
+      members: "",
     });
     setOpen(false);
     setIsUpdate(false);
@@ -331,13 +421,13 @@ const TeamManagement = () => {
         <Card sx={{ minHeight: 220, borderRadius: 3 }}>
           <CardContent>
             <Skeleton variant="text" width="60%" height={40} />
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
               <Skeleton variant="circular" width={20} height={20} />
               <Skeleton variant="text" width="60%" sx={{ ml: 1 }} />
             </Box>
             <Box sx={{ mt: 2 }}>
               <Skeleton variant="text" width="40%" />
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} variant="rounded" width={60} height={24} />
                 ))}
@@ -356,40 +446,42 @@ const TeamManagement = () => {
   return (
     <HRLayout>
       <Fade in timeout={800}>
-          <StyledCard>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Avatar sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                width: 64, 
-                height: 64, 
-                mx: 'auto', 
-                mb: 2 
-              }}>
-                <PeopleAltIcon sx={{ fontSize: 40 }} />
-              </Avatar>
-              <Typography variant="h3" gutterBottom sx={{ 
-                fontWeight: 'bold',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}>
-                Team Management
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                Manage your organization's teams effectively
-              </Typography>
-            </CardContent>
-          </StyledCard>
-        </Fade>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 130, mb: 3 }}>
-        <Button
-          variant="contained"
-          onClick={() => setOpen(true)}
-          disabled={loading}
-        >
+        <StyledCard>
+          <CardContent sx={{ textAlign: "center", py: 4 }}>
+            <Avatar
+              sx={{
+                bgcolor: "rgba(255,255,255,0.2)",
+                width: 64,
+                height: 64,
+                mx: "auto",
+                mb: 2,
+              }}
+            >
+              <PeopleAltIcon sx={{ fontSize: 40 }} />
+            </Avatar>
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                fontWeight: "bold",
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              Team Management
+            </Typography>
+            <Typography variant="h6" sx={{ opacity: 0.9 }}>
+              Manage your organization's teams effectively
+            </Typography>
+          </CardContent>
+        </StyledCard>
+      </Fade>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 130, mb: 3 }}>
+        <Button variant="contained" onClick={() => setOpen(true)} disabled={loading}>
           {isUpdate ? "Update Team" : "Create New Team"}
         </Button>
 
         {/* Department Filter Dropdown */}
-        <FormControl sx={{ width: '300px' }} fullWidth>
+        <FormControl sx={{ width: "300px" }} fullWidth>
           <InputLabel id="department-filter-label">Filter by Department</InputLabel>
           <Select
             labelId="department-filter-label"
@@ -412,69 +504,20 @@ const TeamManagement = () => {
         </FormControl>
       </Box>
 
-
-
       {/* Team Cards View */}
       <Grid container spacing={3}>
-        {loading ? (
-          renderLoadingSkeletons()
-        ) : (
-          currentTeams.map((team) => (
-            <Grid item xs={12} sm={6} md={4} key={team._id}>
-              <Card
-                sx={{
-                  minHeight: 220,
-                  borderRadius: 3,
-                  boxShadow: 3,
-                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
-                  "&:hover": {
-                    transform: "scale(1.03)",
-                    boxShadow: 6,
-                    cursor: "pointer",
-                    backgroundColor: "#E8F9FF"
-                  },
-                }}
-              >
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>{team.teamName}</Typography>
-                  <Typography variant="body2" color="textSecondary" textAlign={"center"} gutterBottom>
-                    <ApartmentIcon sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                    Department: {team.departmentId?.departmentName || "N/A"}
-                  </Typography>
-                  <br />
-
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
-                    <PeopleAltIcon />
-                    {team.members.map((member) => (
-                      <Chip key={member._id} label={member.username} variant="outlined" />
-                    ))}
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ justifyContent: "flex-end", px: 2 }}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleUpdateTeam(team)}
-                    startIcon={actionLoading ? <CircularProgress size={16} /> : <EditIcon />}
-                    disabled={actionLoading}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    size="small"
-                    onClick={() => handleDeleteClick(team)}
-                    startIcon={actionLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
-                    disabled={actionLoading}
-                  >
-                    Delete
-                  </Button>
-                </CardActions>
-              </Card>
-            </Grid>
-          ))
-        )}
+        {loading
+          ? renderLoadingSkeletons()
+          : currentTeams.map((team) => (
+              <Grid item xs={12} sm={6} md={4} key={team._id}>
+                <TeamCard
+                  team={team}
+                  onEdit={handleUpdateTeam}
+                  onDelete={handleDeleteClick}
+                  actionLoading={actionLoading}
+                />
+              </Grid>
+            ))}
       </Grid>
 
       {/* Pagination - Only show when not loading */}
@@ -484,7 +527,7 @@ const TeamManagement = () => {
           page={currentPage}
           onChange={handlePageChange}
           color="primary"
-          sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}
+          sx={{ display: "flex", justifyContent: "center", mt: 3 }}
         />
       )}
 
@@ -523,9 +566,7 @@ const TeamManagement = () => {
                 </MenuItem>
               ))}
             </Select>
-            {formErrors.departmentId && (
-              <FormHelperText>{formErrors.departmentId}</FormHelperText>
-            )}
+            {formErrors.departmentId && <FormHelperText>{formErrors.departmentId}</FormHelperText>}
           </FormControl>
 
           <FormControl fullWidth margin="normal" error={!!formErrors.members} disabled={actionLoading}>
@@ -537,24 +578,25 @@ const TeamManagement = () => {
                 const { value } = e.target;
                 setNewTeam({
                   ...newTeam,
-                  members: typeof value === 'string' ? value.split(',') : value,
+                  members: typeof value === "string" ? value.split(",") : value,
                 });
                 setFormErrors({ ...formErrors, members: "" });
               }}
               renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selected.map((value) => {
-                    const member = employees.find(e => e._id === value);
+                    const member = employees.find((e) => e._id === value);
                     return <Chip key={value} label={member?.username || value} />;
                   })}
                 </Box>
               )}
             >
               {employees
-                .filter(employee =>
-                  employee.employeeDetails?.department === newTeam.departmentId ||
-                  (typeof employee.employeeDetails?.department === "object" &&
-                    employee.employeeDetails?.department?._id === newTeam.departmentId)
+                .filter(
+                  (employee) =>
+                    employee.employeeDetails?.department === newTeam.departmentId ||
+                    (typeof employee.employeeDetails?.department === "object" &&
+                      employee.employeeDetails?.department?._id === newTeam.departmentId)
                 )
                 .map((employee) => (
                   <MenuItem key={employee._id} value={employee._id}>
@@ -562,18 +604,14 @@ const TeamManagement = () => {
                   </MenuItem>
                 ))}
             </Select>
-            {formErrors.members && (
-              <FormHelperText>{formErrors.members}</FormHelperText>
-            )}
+            {formErrors.members && <FormHelperText>{formErrors.members}</FormHelperText>}
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button onClick={resetForm} disabled={actionLoading}>Cancel</Button>
-          <Button
-            onClick={handleSaveTeam}
-            variant="contained"
-            disabled={actionLoading}
-          >
+          <Button onClick={resetForm} disabled={actionLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveTeam} variant="contained" disabled={actionLoading}>
             {actionLoading ? (
               <CircularProgress size={24} color="inherit" />
             ) : isUpdate ? (
@@ -597,11 +635,7 @@ const TeamManagement = () => {
           <Button onClick={handleCancelDelete} color="primary">
             Cancel
           </Button>
-          <Button
-            onClick={handleDeleteTeam}
-            color="error"
-            disabled={actionLoading}
-          >
+          <Button onClick={handleDeleteTeam} color="error" disabled={actionLoading}>
             {actionLoading ? <CircularProgress size={24} /> : "Delete"}
           </Button>
         </DialogActions>
@@ -612,9 +646,9 @@ const TeamManagement = () => {
         open={!!successMessage}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
           {successMessage}
         </Alert>
       </Snackbar>
@@ -623,9 +657,9 @@ const TeamManagement = () => {
         open={!!error}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: "100%" }}>
           {error}
         </Alert>
       </Snackbar>
