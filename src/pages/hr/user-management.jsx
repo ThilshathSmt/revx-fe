@@ -151,12 +151,14 @@ const RoleChip = styled(Chip)(({ theme, role }) => {
 const UserManagement = () => {
   const [emailError, setEmailError] = useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = useState("");
+  const [usernameError, setUsernameError] = useState(false);
+  const [usernameErrorMessage, setUsernameErrorMessage] = useState("");
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [newUser, setNewUser] = useState({
     username: "",
@@ -258,15 +260,51 @@ const UserManagement = () => {
     }
   };
 
+  const checkUsernameExists = async (username) => {
+    try {
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/check-username/${username}`,
+        {
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
+      );
+      return response.data.exists;
+    } catch (err) {
+      console.error("Error checking username:", err);
+      return false;
+    }
+  };
+
   const handleSaveUser = async () => {
+    // Email validation
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(newUser.email)) {
       setEmailError(true);
       setEmailErrorMessage("Invalid email address. Please enter a valid email.");
-      return; // Exit function if email is invalid
+      return;
     } else {
       setEmailError(false);
       setEmailErrorMessage("");
+    }
+
+    // Username validation
+    if (!newUser.username.trim()) {
+      setUsernameError(true);
+      setUsernameErrorMessage("Username is required");
+      return;
+    }
+
+    // Check if username exists (only for new users or when username changes during update)
+    if (!isUpdate || (isUpdate && newUser.username !== selectedUser.username)) {
+      const usernameExists = await checkUsernameExists(newUser.username);
+      if (usernameExists) {
+        setUsernameError(true);
+        setUsernameErrorMessage("Username already exists. Please choose a different one.");
+        return;
+      } else {
+        setUsernameError(false);
+        setUsernameErrorMessage("");
+      }
     }
 
     const url = isUpdate
@@ -678,6 +716,8 @@ const UserManagement = () => {
                   value={newUser.username}
                   onChange={handleInputChange}
                   required
+                  error={usernameError}
+                  helperText={usernameError ? usernameErrorMessage : " "}
                   InputProps={{
                     startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />,
                   }}
@@ -711,36 +751,36 @@ const UserManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-        <TextField
-          label="Password"
-          variant="outlined"
-          fullWidth
-          name="password"
-          value={newUser.password}
-          onChange={handleInputChange}
-          type={showNewPassword ? 'text' : 'password'}
-          required={!isUpdate}
-          helperText={isUpdate ? "Leave blank to keep current password" : ""}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  edge="end"
-                  size="small"
-                >
-                  {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-            },
-          }}
-        />
-      </Grid>
+                <TextField
+                  label="Password"
+                  variant="outlined"
+                  fullWidth
+                  name="password"
+                  value={newUser.password}
+                  onChange={handleInputChange}
+                  type={showNewPassword ? 'text' : 'password'}
+                  required={!isUpdate}
+                  helperText={isUpdate ? "Leave blank to keep current password" : ""}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
+              </Grid>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth required>
                   <InputLabel>Role</InputLabel>
