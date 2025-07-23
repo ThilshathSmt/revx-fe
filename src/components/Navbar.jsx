@@ -45,22 +45,33 @@ const Navbar = () => {
     <AppBar position="sticky" sx={{ background: 'linear-gradient(45deg, #0c4672, #00bcd4)', }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
         {/* Logo Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Avatar
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
-                    mr: 2,
-                    borderRadius: 3,
-                  }}
-                >
-                  R
-                </Avatar>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  RevX
-                </Typography>
-              </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+                        <Avatar
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                            mr: 2,
+                            borderRadius: 3,
+                            fontSize: '1.5rem',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          R
+                        </Avatar>
+                        <Typography
+                          variant="h4"
+                          component="div"
+                          sx={{
+                            fontWeight: 'bold',
+                            background: 'linear-gradient(45deg, #ffffff, #00bcd4)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                          }}
+                        >
+                          RevX
+                        </Typography>
+                      </Box>
 
         {/* Right Section */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
