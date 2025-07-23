@@ -34,16 +34,21 @@ import {
   Skeleton,
   CircularProgress,
   Avatar,
+  IconButton,
+  Divider,
+  Slide,
   Fade,
-  styled,
   Tooltip,
+  styled
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import ApartmentIcon from "@mui/icons-material/Apartment";
+import BusinessIcon from "@mui/icons-material/Business";
 import GroupIcon from '@mui/icons-material/Group';
-import BusinessIcon from '@mui/icons-material/Business';
 import HRLayout from "../../components/HRLayout";
 
 // Styled components for enhanced UI
@@ -53,6 +58,38 @@ const StyledCard = styled(Card)(({ theme }) => ({
   marginBottom: theme.spacing(3),
   borderRadius: 16,
   boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
+}));
+
+const StyledDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    borderRadius: 16,
+    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+  },
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: 25,
+  padding: theme.spacing(1.5, 4),
+  fontWeight: 700,
+  textTransform: 'none',
+  background: 'linear-gradient(135deg, #0c4672 0%, #00bcd4 100%)',
+  color: 'white',
+  boxShadow: '0 4px 15px rgba(12, 70, 114, 0.3)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    background: 'linear-gradient(135deg, #004877 0%, #00acc1 100%)',
+    boxShadow: '0 6px 20px rgba(0, 188, 212, 0.5)',
+  },
+}));
+
+const ActionButton = styled(IconButton)(({ theme }) => ({
+  borderRadius: 8,
+  margin: theme.spacing(0, 0.5),
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  },
 }));
 
 // Utility function for minimum delay
@@ -66,9 +103,8 @@ const withMinimumDelay = async (fn, minDelay = 1000) => {
   return result;
 };
 
-// TeamCard component with improved UI
+// TeamCard component (preserved as requested)
 const TeamCard = ({ team, onEdit, onDelete, actionLoading }) => {
-  // Generate initials for member avatars (e.g., first letters of username)
   const getInitials = (name) => {
     if (!name) return "";
     return name
@@ -120,7 +156,6 @@ const TeamCard = ({ team, onEdit, onDelete, actionLoading }) => {
           </Typography>
         </Box>
 
-        {/* Avatars for members */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
           {team.members.slice(0, 5).map((member) => (
             <Tooltip key={member._id} title={member.username} arrow>
@@ -141,10 +176,9 @@ const TeamCard = ({ team, onEdit, onDelete, actionLoading }) => {
         </Box>
       </CardContent>
 
-      {/* Action buttons */}
       <CardActions
         sx={{ justifyContent: "flex-end", pt: 0, px: 2, pb: 1 }}
-        onClick={(e) => e.stopPropagation()} // Prevent card click when clicking buttons
+        onClick={(e) => e.stopPropagation()}
       >
         <Tooltip title="Edit Team">
           <span>
@@ -198,13 +232,10 @@ const TeamManagement = () => {
     departmentId: "",
     members: "",
   });
-  // Add state for department filter dropdown
   const [filterDepartmentId, setFilterDepartmentId] = useState("");
-  // Filtered teams based on department filter
   const filteredTeams = filterDepartmentId
     ? teams.filter((team) => team.departmentId?._id === filterDepartmentId)
     : teams;
-
   const [open, setOpen] = useState(false);
   const [isUpdate, setIsUpdate] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -236,7 +267,6 @@ const TeamManagement = () => {
     }
   };
 
-  // Pagination based on filteredTeams now
   const indexOfLastTeam = currentPage * teamsPerPage;
   const indexOfFirstTeam = indexOfLastTeam - teamsPerPage;
   const currentTeams = filteredTeams.slice(indexOfFirstTeam, indexOfLastTeam);
@@ -414,7 +444,6 @@ const TeamManagement = () => {
     setSelectedTeam(null);
   };
 
-  // Loading skeleton for team cards
   const renderLoadingSkeletons = () => {
     return Array.from({ length: teamsPerPage }).map((_, index) => (
       <Grid item xs={12} sm={6} md={4} key={index}>
@@ -475,13 +504,16 @@ const TeamManagement = () => {
           </CardContent>
         </StyledCard>
       </Fade>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 130, mb: 3 }}>
-        <Button variant="contained" onClick={() => setOpen(true)} disabled={loading}>
-          {isUpdate ? "Update Team" : "Create New Team"}
-        </Button>
 
-        {/* Department Filter Dropdown */}
-        <FormControl sx={{ width: "300px" }} fullWidth>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <GradientButton
+          onClick={() => setOpen(true)}
+          disabled={loading}
+        >
+          {isUpdate ? "Update Team" : "Create New Team"}
+        </GradientButton>
+
+        <FormControl sx={{ width: "300px" }}>
           <InputLabel id="department-filter-label">Filter by Department</InputLabel>
           <Select
             labelId="department-filter-label"
@@ -490,6 +522,12 @@ const TeamManagement = () => {
             onChange={(e) => {
               setFilterDepartmentId(e.target.value);
               setCurrentPage(1);
+            }}
+            sx={{
+              borderRadius: 25,
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(0, 0, 0, 0.23)',
+              },
             }}
           >
             <MenuItem value="">
@@ -504,7 +542,6 @@ const TeamManagement = () => {
         </FormControl>
       </Box>
 
-      {/* Team Cards View */}
       <Grid container spacing={3}>
         {loading
           ? renderLoadingSkeletons()
@@ -520,7 +557,6 @@ const TeamManagement = () => {
             ))}
       </Grid>
 
-      {/* Pagination - Only show when not loading */}
       {!loading && (
         <Pagination
           count={Math.ceil(filteredTeams.length / teamsPerPage)}
@@ -531,10 +567,36 @@ const TeamManagement = () => {
         />
       )}
 
-      {/* Team Form Dialog */}
-      <Dialog open={open} onClose={resetForm} fullWidth maxWidth="md">
-        <DialogTitle>{isUpdate ? "Update Team" : "Create New Team"}</DialogTitle>
-        <DialogContent>
+      <StyledDialog
+        open={open}
+        onClose={resetForm}
+        fullWidth
+        maxWidth="md"
+        TransitionComponent={Slide}
+        TransitionProps={{ direction: "up" }}
+      >
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(45deg, #0c4672, #00bcd4)",
+            color: "white",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
+              <PeopleAltIcon />
+            </Avatar>
+            <Typography variant="h6">
+              {isUpdate ? "Update Team" : "Create New Team"}
+            </Typography>
+          </Box>
+          <IconButton onClick={resetForm} sx={{ color: "white" }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
           <TextField
             label="Team Name"
             fullWidth
@@ -543,14 +605,26 @@ const TeamManagement = () => {
               setNewTeam({ ...newTeam, teamName: e.target.value });
               setFormErrors({ ...formErrors, teamName: "" });
             }}
-            margin="normal"
+            margin="dense"
             required
             error={!!formErrors.teamName}
             helperText={formErrors.teamName}
             disabled={actionLoading}
+            InputProps={{
+              startAdornment: (
+                <PeopleAltIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
+            }}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
           />
 
-          <FormControl fullWidth margin="normal" error={!!formErrors.departmentId} disabled={actionLoading}>
+          <FormControl 
+            fullWidth 
+            margin="dense" 
+            error={!!formErrors.departmentId} 
+            disabled={actionLoading}
+            sx={{ mt: 2 }}
+          >
             <InputLabel>Department</InputLabel>
             <Select
               value={newTeam.departmentId}
@@ -559,6 +633,7 @@ const TeamManagement = () => {
                 setFormErrors({ ...formErrors, departmentId: "" });
               }}
               label="Department"
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
             >
               {departments.map((department) => (
                 <MenuItem key={department._id} value={department._id}>
@@ -569,19 +644,18 @@ const TeamManagement = () => {
             {formErrors.departmentId && <FormHelperText>{formErrors.departmentId}</FormHelperText>}
           </FormControl>
 
-          <FormControl fullWidth margin="normal" error={!!formErrors.members} disabled={actionLoading}>
+          <FormControl 
+            fullWidth 
+            margin="dense" 
+            error={!!formErrors.members} 
+            disabled={actionLoading}
+            sx={{ mt: 2 }}
+          >
             <InputLabel>Team Members</InputLabel>
             <Select
               multiple
               value={newTeam.members}
-              onChange={(e) => {
-                const { value } = e.target;
-                setNewTeam({
-                  ...newTeam,
-                  members: typeof value === "string" ? value.split(",") : value,
-                });
-                setFormErrors({ ...formErrors, members: "" });
-              }}
+              onChange={handleMemberChange}
               renderValue={(selected) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selected.map((value) => {
@@ -590,6 +664,7 @@ const TeamManagement = () => {
                   })}
                 </Box>
               )}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
             >
               {employees
                 .filter(
@@ -607,48 +682,149 @@ const TeamManagement = () => {
             {formErrors.members && <FormHelperText>{formErrors.members}</FormHelperText>}
           </FormControl>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={resetForm} disabled={actionLoading}>
+        <Divider />
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button
+            onClick={resetForm}
+            startIcon={<CancelIcon />}
+            sx={{
+              borderRadius: 25,
+              px: 3,
+              textTransform: "none",
+            }}
+            disabled={actionLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveTeam} variant="contained" disabled={actionLoading}>
+          <Button
+            onClick={handleSaveTeam}
+            variant="contained"
+            startIcon={<SaveIcon />}
+            sx={{
+              background: "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)",
+              borderRadius: 25,
+              px: 3,
+              textTransform: "none",
+              "&:hover": {
+                background: "linear-gradient(135deg, #45a049 0%, #4CAF50 100%)",
+              },
+            }}
+            disabled={actionLoading}
+          >
             {actionLoading ? (
               <CircularProgress size={24} color="inherit" />
             ) : isUpdate ? (
               "Update"
             ) : (
-              "Create"
+              "Save"
             )}
           </Button>
         </DialogActions>
-      </Dialog>
+      </StyledDialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleCancelDelete}>
-        <DialogTitle>Confirm Delete</DialogTitle>
+      <StyledDialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        PaperProps={{
+          sx: {
+            borderRadius: 16,
+            background: "linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            color: "#E53E3E",
+            fontWeight: 600,
+          }}
+        >
+          <Avatar sx={{ bgcolor: "#FED7D7", color: "#E53E3E" }}>
+            <DeleteIcon />
+          </Avatar>
+          Confirm Deletion
+        </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography variant="body1" sx={{ py: 2 }}>
             Are you sure you want to delete the team "{teamToDelete?.teamName}"?
           </Typography>
+          {teamToDelete && (
+            <Box
+              sx={{
+                p: 2,
+                backgroundColor: "rgba(229, 62, 62, 0.1)",
+                borderRadius: 2,
+                border: "1px solid rgba(229, 62, 62, 0.2)",
+              }}
+            >
+              <Typography variant="subtitle2" color="error">
+                Team: {teamToDelete.teamName}
+              </Typography>
+              <Typography variant="subtitle2" color="error">
+                Department: {teamToDelete.departmentId?.departmentName || "None"}
+              </Typography>
+            </Box>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelDelete} color="primary">
+        <Divider />
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button
+            onClick={handleCancelDelete}
+            sx={{
+              borderRadius: 25,
+              px: 3,
+              textTransform: "none",
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleDeleteTeam} color="error" disabled={actionLoading}>
-            {actionLoading ? <CircularProgress size={24} /> : "Delete"}
+          <Button
+            onClick={handleDeleteTeam}
+            variant="contained"
+            color="error"
+            autoFocus
+            startIcon={<DeleteIcon />}
+            sx={{
+              borderRadius: 25,
+              px: 3,
+              textTransform: "none",
+              background: "linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #EE5A52 0%, #FF6B6B 100%)",
+              },
+            }}
+            disabled={actionLoading}
+          >
+            {actionLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Delete Team"
+            )}
           </Button>
         </DialogActions>
-      </Dialog>
+      </StyledDialog>
 
-      {/* Success and Error Notifications */}
       <Snackbar
         open={!!successMessage}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        TransitionComponent={Fade}
       >
-        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="success"
+          sx={{
+            width: "100%",
+            borderRadius: 2,
+            "& .MuiAlert-icon": {
+              fontSize: "1.5rem",
+            },
+          }}
+          variant="filled"
+        >
           {successMessage}
         </Alert>
       </Snackbar>
@@ -658,8 +834,20 @@ const TeamManagement = () => {
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        TransitionComponent={Fade}
       >
-        <Alert onClose={handleCloseSnackbar} severity="error" sx={{ width: "100%" }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{
+            width: "100%",
+            borderRadius: 2,
+            "& .MuiAlert-icon": {
+              fontSize: "1.5rem",
+            },
+          }}
+          variant="filled"
+        >
           {error}
         </Alert>
       </Snackbar>
