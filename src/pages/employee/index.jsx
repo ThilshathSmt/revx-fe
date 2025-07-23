@@ -9,12 +9,41 @@ import {
   Paper,
   Avatar,
   CircularProgress,
+  Stack,
+  Badge,
+  Divider
 } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip  } from 'recharts';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip
+} from 'recharts';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+
 import EmployeeLayout from '../../components/EmployeeLayout';
 import { useAuth } from '../../hooks/useAuth';
 
-const COLORS = ['#4caf50', '#2196f3', '#f44336']; // Green, Blue, Red
+const COLORS = ['#4caf50', '#2196f3', '#f44336'];
+
+const StatCard = ({ title, value, icon, color }) => (
+  <Card elevation={1} sx={{ borderLeft: `6px solid ${color}` }}>
+    <CardContent>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Box sx={{ color }}>{icon}</Box>
+        <Box>
+          <Typography variant="subtitle2" color="text.secondary">
+            {title}
+          </Typography>
+          <Typography variant="h5" fontWeight="bold">
+            {value}
+          </Typography>
+        </Box>
+      </Stack>
+    </CardContent>
+  </Card>
+);
 
 const EmployeeDashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -32,18 +61,16 @@ const EmployeeDashboard = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch employee tasks
         const tasksResponse = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/`,
           { headers: { Authorization: `Bearer ${user.token}` } }
         );
-        
-        // Fetch profile picture
+
         const profilePicResponse = await axios.get(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`,
-          { 
+          {
             headers: { Authorization: `Bearer ${user.token}` },
-            responseType: 'blob' 
+            responseType: 'blob'
           }
         );
 
@@ -59,7 +86,6 @@ const EmployeeDashboard = () => {
     fetchData();
   }, [user, isAuthenticated]);
 
-  // Process task data for visualization
   const taskStats = tasks.reduce((acc, task) => {
     acc[task.status] = (acc[task.status] || 0) + 1;
     return acc;
@@ -76,76 +102,120 @@ const EmployeeDashboard = () => {
 
   return (
     <EmployeeLayout>
-      <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-        {/* Header Section */}
-        <Grid container spacing={4} sx={{ mb: 4 }} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <Typography variant="h3" component="h1" gutterBottom>
-              Welcome, {user?.username}!
-            </Typography>
-            <Typography variant="h6" color="textSecondary">
-              {user?.email}
-            </Typography>
+      <Box sx={{ px: { xs: 2, md: 4 }, py: 4, bgcolor: '#f4f6f8', minHeight: '100vh' }}>
+
+        {/* Gradient Header */}
+        <Card
+          elevation={0}
+          sx={{
+            mb: 4,
+            background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+            color: 'white',
+            overflow: 'hidden',
+            position: 'relative',
+            borderRadius: 3
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: 200,
+              height: 200,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '50%',
+              transform: 'translate(50%, -50%)',
+            }}
+          />
+          <CardContent sx={{ p: 4, position: 'relative', zIndex: 1 }}>
+            <Grid container spacing={4} alignItems="center">
+              <Grid item xs={12} md={8}>
+                <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+                  <DashboardIcon sx={{ fontSize: 40 }} />
+                  <Typography variant="h3" fontWeight={700}>
+                    Employee Dashboard
+                  </Typography>
+                </Stack>
+                <Typography variant="h5" sx={{ opacity: 0.9, mb: 1 }}>
+                  Welcome, {user?.username}!
+                </Typography>
+                <Typography variant="body1" sx={{ opacity: 0.8 }}>
+                  {user?.email}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    <Box
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        backgroundColor: '#4caf50',
+                        border: '3px solid white',
+                      }}
+                    />
+                  }
+                >
+                  <Avatar
+                    src={imagePreview || '/default-avatar.png'}
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      border: '4px solid rgba(255,255,255,0.3)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                </Badge>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Stat Cards */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Tasks"
+              value={tasks.length}
+              icon={<AssignmentIcon sx={{ fontSize: 28 }} />}
+              color="#607d8b"
+            />
           </Grid>
-          <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Avatar
-              src={imagePreview || '/default-avatar.png'}
-              sx={{ width: 120, height: 120, boxShadow: 3 }}
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Completed"
+              value={taskStats.completed || 0}
+              icon={<CheckCircleIcon sx={{ fontSize: 28 }} />}
+              color="#4caf50"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="In Progress"
+              value={taskStats['in-progress'] || 0}
+              icon={<HourglassEmptyIcon sx={{ fontSize: 28 }} />}
+              color="#2196f3"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Pending"
+              value={taskStats.scheduled || 0}
+              icon={<PendingActionsIcon sx={{ fontSize: 28 }} />}
+              color="#f44336"
             />
           </Grid>
         </Grid>
 
-        {/* Task Summary Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Total Tasks</Typography>
-                <Typography variant="h3">{tasks.length}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Completed</Typography>
-                <Typography variant="h3" color="success.main">
-                  {taskStats.completed || 0}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>In Progress</Typography>
-                <Typography variant="h3" color="info.main">
-                  {taskStats['in-progress'] || 0}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6} lg={3}>
-            <Card sx={{ height: '100%' }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>Pending</Typography>
-                <Typography variant="h3" color="error.main">
-                  {taskStats.scheduled || 0}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
         {/* Task Distribution Chart */}
-        <Paper sx={{ p: 3, mb: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-            Task Status Distribution
-          </Typography>
-          <ResponsiveContainer width="100%" height={400}>
+        <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Typography variant="h6" gutterBottom>Task Status Distribution</Typography>
+          <Divider sx={{ mb: 2 }} />
+          <ResponsiveContainer width="100%" height={350}>
             <PieChart>
               <Pie
                 data={taskData}
@@ -153,14 +223,11 @@ const EmployeeDashboard = () => {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={150}
+                outerRadius={120}
                 label
               >
                 {taskData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
-                  />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
