@@ -14,7 +14,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
+  MenuItem,Avatar,imagePreview
 } from '@mui/material';
 import { useRouter } from "next/router";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -36,6 +36,7 @@ const HRDashboard = () => {
   const [selectedGoalStatus, setSelectedGoalStatus] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedTaskStatus, setSelectedTaskStatus] = useState('');
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -44,6 +45,8 @@ const HRDashboard = () => {
       router.push('/auth/signin');
       return;
     }
+    
+    
 
     const fetchData = async () => {
       try {
@@ -51,8 +54,17 @@ const HRDashboard = () => {
           axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/hr`, { headers: { Authorization: `Bearer ${user.token}` } }),
           axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/all`, { headers: { Authorization: `Bearer ${user.token}` } }),
         ]);
+         // Fetch profile picture
+        const profilePicResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/profile/${user.id}/profile-picture`,
+          {
+            headers: { Authorization: `Bearer ${user.token}` },
+            responseType: 'blob'
+          }
+        );
         setGoals(goalsRes.data);
         setTasks(tasksRes.data);
+        setImagePreview(URL.createObjectURL(profilePicResponse.data));
       } catch (err) {
         setError('Failed to load dashboard data');
       } finally {
@@ -137,9 +149,23 @@ const HRDashboard = () => {
     <HRLayout>
       <Box sx={{ padding: 4, minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
         {/* Header */}
-        <Typography variant="h3" gutterBottom sx={{ textAlign: 'center', color: '#15B2C0' }}>
-          HR Dashboard
-        </Typography>
+        {/* Header Section */}
+        <Grid container spacing={4} alignItems="center" sx={{ mb: 4 }}>
+          <Grid item xs={12} md={8}>
+            <Typography variant="h3" component="h1" gutterBottom>
+              Welcome, {user?.username}!
+            </Typography>
+            <Typography variant="h6" color="textSecondary">
+              {user?.email}
+            </Typography>
+          </Grid>
+          <Grid item xs={12} md={4} sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Avatar
+              src={imagePreview || '/default-avatar.png'}
+              sx={{ width: 120, height: 120, boxShadow: 3 }}
+            />
+          </Grid>
+        </Grid>
 
         {/* Manager Goals Progress Rates */}
         <Paper sx={{ p: 3, mb: 4 }}>
