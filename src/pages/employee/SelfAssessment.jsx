@@ -40,6 +40,65 @@ import {
   Feedback as FeedbackIcon
 } from "@mui/icons-material";
 import EmployeeLayout from "../../components/EmployeeLayout";
+import { styled } from '@mui/material/styles';
+import { Fade } from '@mui/material';
+
+// === Styled Components (copied from manager/tasks.jsx) ===
+const StyledCard = styled(Paper)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+  color: 'white',
+  marginBottom: theme.spacing(3),
+  borderRadius: 16,
+  boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+}));
+
+const StyledContainer = styled(Box)(({ theme }) => ({
+  padding: 0,
+  maxWidth: 'false',
+}));
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  borderRadius: 16,
+  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+  overflow: 'hidden',
+  backgroundColor: '#fff',
+  marginBottom: theme.spacing(3),
+}));
+
+const StyledTableHead = styled(TableHead)(({ theme }) => ({
+  background: 'linear-gradient(45deg, #15B2C0 0%, #0c4672 100%)',
+  '& .MuiTableCell-root': {
+    color: '#fff',
+    fontWeight: 700,
+    fontSize: '0.95rem',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: 'rgba(21, 178, 192, 0.05)',
+  },
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    backgroundColor: 'rgba(21, 178, 192, 0.15)',
+    transform: 'scale(1.005)',
+    boxShadow: '0 2px 10px rgba(21, 178, 192, 0.2)',
+  },
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: 25,
+  padding: theme.spacing(1.5, 4),
+  fontWeight: 700,
+  textTransform: 'none',
+  background: 'linear-gradient(135deg, #15B2C0 0%, #0c4672 100%)',
+  color: 'white',
+  '&:hover': {
+    background: 'linear-gradient(135deg, #0c4672 0%, #15B2C0 100%)',
+  },
+}));
 
 const EmployeeSelfAssessment = () => {
   const { user } = useAuth();
@@ -291,117 +350,160 @@ const EmployeeSelfAssessment = () => {
     </Box>
   );
 
-  const renderPendingTasks = () => {
-    if (loading) return renderLoadingSkeleton();
-    if (pendingTasks.length === 0) {
-      return (
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <Typography color="text.secondary">
-            No pending tasks requiring assessment
-          </Typography>
-        </Box>
-      );
-    }
-    return (
-      <TableContainer component={Paper} sx={{ mt: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><strong>Task</strong></TableCell>
-              <TableCell><strong>Project</strong></TableCell>
-              <TableCell><strong>Due Date</strong></TableCell>
-              <TableCell><strong>Status</strong></TableCell>
-              <TableCell><strong>Actions</strong></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {pendingTasks.map((task) => (
-              <TableRow key={task._id}>
-                <TableCell>{task.taskTitle || "N/A"}</TableCell>
-                <TableCell>
-                  {task.projectId?.projectTitle || "N/A"}
-                </TableCell>
-                <TableCell>
-                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A"}
-                </TableCell>
-                <TableCell>
-                  <Chip label="Pending" color="info" size="small" />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={() => handleOpenDialog(task)}
-                    startIcon={<EditIcon />}
-                  >
-                    Assess
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    );
-  };
-
-  const renderSubmittedAssessments = () => {
-    if (loading) return renderLoadingSkeleton();
-    if (submittedAssessments.length === 0) {
-      return (
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <Typography color="text.secondary">
-            No submitted assessments yet
-          </Typography>
-        </Box>
-      );
-    }
-    return (
-      <Box sx={{ mt: 2 }}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>Task</strong></TableCell>
-                <TableCell><strong>Project</strong></TableCell>
-                <TableCell><strong>Submitted</strong></TableCell>
-                <TableCell><strong>Status</strong></TableCell>
-                <TableCell><strong>Actions</strong></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {submittedAssessments.map((assessment) => (
-                <TableRow key={assessment._id}>
-                  <TableCell>{assessment.taskId?.taskTitle || "N/A"}</TableCell>
-                  <TableCell>
-                    {assessment.taskId?.projectId?.projectTitle || "N/A"}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(assessment.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusChip(assessment.feedbackDetails)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      color="primary"
-                      size="small"
-                      onClick={() => handleExpandAssessment(assessment._id)}
-                      startIcon={<FeedbackIcon />}
-                    >
-                      {expandedAssessment === assessment._id ? 'Hide Details' : 'View Details'}
-                    </Button>
-                  </TableCell>
+  return (
+    <EmployeeLayout>
+      <StyledContainer>
+        <Fade in timeout={800}>
+          <StyledCard>
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h4" gutterBottom sx={{ 
+                fontWeight: 'bold',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                color: 'white',
+                mb: 0
+              }}>
+                Task Self-Assessments
+              </Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9, color: 'white' }}>
+                Reflect on your work and track feedback
+              </Typography>
+            </Box>
+          </StyledCard>
+        </Fade>
+        {/* Error Alert */}
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 3 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={fetchAssessments}
+              >
+                RETRY
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        )}
+        {/* Tabs */}
+        <Tabs 
+          value={tabValue} 
+          onChange={(e, newValue) => setTabValue(newValue)} 
+          centered
+          sx={{ mb: 2 }}
+        >
+          <Tab 
+            label="Pending" 
+            icon={<PendingActionsIcon />} 
+            iconPosition="start"
+          />
+          <Tab 
+            label="Submitted" 
+            icon={<CheckCircleIcon />} 
+            iconPosition="start"
+          />
+        </Tabs>
+        {/* Table Section */}
+        {tabValue === 0 ? (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <StyledTableHead>
+                <TableRow>
+                  <TableCell><strong>Task</strong></TableCell>
+                  <TableCell><strong>Project</strong></TableCell>
+                  <TableCell><strong>Due Date</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Assessment Details Accordions */}
-        {submittedAssessments.map((assessment) => (
+              </StyledTableHead>
+              <TableBody>
+                {loading ? renderLoadingSkeleton() :
+                  pendingTasks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          No pending tasks requiring assessment
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingTasks.map((task) => (
+                      <StyledTableRow key={task._id}>
+                        <TableCell>{task.taskTitle || "N/A"}</TableCell>
+                        <TableCell>{task.projectId?.projectTitle || "N/A"}</TableCell>
+                        <TableCell>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A"}</TableCell>
+                        <TableCell><Chip label="Pending" color="info" size="small" /></TableCell>
+                        <TableCell>
+                          <GradientButton
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleOpenDialog(task)}
+                            startIcon={<EditIcon />}
+                            sx={{ minWidth: 120 }}
+                          >
+                            Assess
+                          </GradientButton>
+                        </TableCell>
+                      </StyledTableRow>
+                    ))
+                  )}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        ) : (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <StyledTableHead>
+                <TableRow>
+                  <TableCell><strong>Task</strong></TableCell>
+                  <TableCell><strong>Project</strong></TableCell>
+                  <TableCell><strong>Submitted</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
+                </TableRow>
+              </StyledTableHead>
+              <TableBody>
+                {loading ? renderLoadingSkeleton() :
+                  submittedAssessments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          No submitted assessments yet
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    submittedAssessments.map((assessment) => (
+                      <StyledTableRow key={assessment._id}>
+                        <TableCell>{assessment.taskId?.taskTitle || "N/A"}</TableCell>
+                        <TableCell>{assessment.taskId?.projectId?.projectTitle || "N/A"}</TableCell>
+                        <TableCell>{new Date(assessment.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>{getStatusChip(assessment.feedbackDetails)}</TableCell>
+                        <TableCell>
+                          <GradientButton
+                            variant="outlined"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleExpandAssessment(assessment._id)}
+                            startIcon={<FeedbackIcon />}
+                            sx={{ minWidth: 120 }}
+                          >
+                            {expandedAssessment === assessment._id ? 'Hide Details' : 'View Details'}
+                          </GradientButton>
+                        </TableCell>
+                      </StyledTableRow>
+                    ))
+                  )}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        )}
+        {/* Accordions for details remain unchanged */}
+        {tabValue === 1 && submittedAssessments.map((assessment) => (
           <Accordion 
             key={`details-${assessment._id}`}
             expanded={expandedAssessment === assessment._id}
@@ -426,7 +528,6 @@ const EmployeeSelfAssessment = () => {
                     {assessment.comments || "No comments provided"}
                   </Typography>
                 </Paper>
-
                 {assessment.feedbackDetails ? (
                   <>
                     <Divider sx={{ my: 2 }} />
@@ -454,144 +555,88 @@ const EmployeeSelfAssessment = () => {
             </AccordionDetails>
           </Accordion>
         ))}
-      </Box>
-    );
-  };
-
-  return (
-    <EmployeeLayout>
-      <Typography variant="h4" gutterBottom sx={{ 
-        textAlign: "center", 
-        color: "#15B2C0", 
-        mb: 4,
-        fontWeight: 'bold'
-      }}>
-        Task Self-Assessments
-      </Typography>
-
-      {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3 }}
-          action={
-            <Button 
-              color="inherit" 
-              size="small" 
-              onClick={fetchAssessments}
-            >
-              RETRY
-            </Button>
-          }
+        {/* Dialog for assessment submission */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => !isSubmitting && setOpenDialog(false)} 
+          fullWidth 
+          maxWidth="md"
         >
-          {error}
-        </Alert>
-      )}
-
-      <Tabs 
-        value={tabValue} 
-        onChange={(e, newValue) => setTabValue(newValue)} 
-        centered
-        sx={{ mb: 2 }}
-      >
-        <Tab 
-          label="Pending" 
-          icon={<PendingActionsIcon />} 
-          iconPosition="start"
-        />
-        <Tab 
-          label="Submitted" 
-          icon={<CheckCircleIcon />} 
-          iconPosition="start"
-        />
-      </Tabs>
-
-      {tabValue === 0 ? renderPendingTasks() : renderSubmittedAssessments()}
-
-      <Dialog 
-        open={openDialog} 
-        onClose={() => !isSubmitting && setOpenDialog(false)} 
-        fullWidth 
-        maxWidth="md"
-      >
-        <DialogTitle sx={{ bgcolor: '#15B2C0', color: 'white' }}>
-          {selectedTask?.taskTitle || "Task Assessment"}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              <strong>Project:</strong> {selectedTask?.projectId?.projectTitle || "N/A"}
-            </Typography>
-            {selectedTask?.dueDate && (
+          <DialogTitle sx={{ bgcolor: '#15B2C0', color: 'white' }}>
+            {selectedTask?.taskTitle || "Task Assessment"}
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle1" gutterBottom>
-                <strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}
+                <strong>Project:</strong> {selectedTask?.projectId?.projectTitle || "N/A"}
               </Typography>
-            )}
-          </Box>
-
-          <TextField
-            label="Your Self-Assessment"
-            multiline
-            rows={8}
-            fullWidth
-            variant="outlined"
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            placeholder="Describe your work on this task, including:
-- What you accomplished
-- Challenges you faced
-- Lessons learned
-- Any additional comments..."
-            InputProps={{
-              style: { fontSize: '0.875rem' }
-            }}
-            sx={{ mt: 1 }}
-            error={comments.length > 0 && comments.trim().length < 10}
-            helperText={
-              comments.length > 0 && comments.trim().length < 10
-                ? "Comments should be at least 10 characters"
-                : " "
-            }
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => setOpenDialog(false)} 
-            color="secondary"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmitAssessment}
-            color="primary"
-            variant="contained"
-            disabled={!comments || comments.trim().length < 10 || isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
-          >
-            {isSubmitting ? 'Processing...' : 'Submit Assessment'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-          action={
-            <Button color="inherit" size="small" onClick={handleCloseSnackbar}>
-              <CloseIcon fontSize="small" />
+              {selectedTask?.dueDate && (
+                <Typography variant="subtitle1" gutterBottom>
+                  <strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}
+                </Typography>
+              )}
+            </Box>
+            <TextField
+              label="Your Self-Assessment"
+              multiline
+              rows={8}
+              fullWidth
+              variant="outlined"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="Describe your work on this task, including:\n- What you accomplished\n- Challenges you faced\n- Lessons learned\n- Any additional comments..."
+              InputProps={{
+                style: { fontSize: '0.875rem' }
+              }}
+              sx={{ mt: 1 }}
+              error={comments.length > 0 && comments.trim().length < 10}
+              helperText={
+                comments.length > 0 && comments.trim().length < 10
+                  ? "Comments should be at least 10 characters"
+                  : " "
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => setOpenDialog(false)} 
+              color="secondary"
+              disabled={isSubmitting}
+            >
+              Cancel
             </Button>
-          }
+            <GradientButton
+              onClick={handleSubmitAssessment}
+              color="primary"
+              variant="contained"
+              disabled={!comments || comments.trim().length < 10 || isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={20} /> : null}
+            >
+              {isSubmitting ? 'Processing...' : 'Submit Assessment'}
+            </GradientButton>
+          </DialogActions>
+        </Dialog>
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+            action={
+              <Button color="inherit" size="small" onClick={handleCloseSnackbar}>
+                <CloseIcon fontSize="small" />
+              </Button>
+            }
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </StyledContainer>
     </EmployeeLayout>
   );
 };
