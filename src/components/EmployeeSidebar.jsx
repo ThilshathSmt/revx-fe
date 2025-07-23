@@ -147,16 +147,6 @@ const EmployeeSidebar = () => {
                 transition={{ duration: 0.2 }}
                 style={{ display: 'flex', alignItems: 'center' }}
               >
-                <Avatar
-                  sx={{
-                    bgcolor: "rgba(0, 188, 212, 0.2)",
-                    mr: 2,
-                    width: 40,
-                    height: 40,
-                  }}
-                >
-                  <WorkIcon />
-                </Avatar>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Employee Panel
                 </Typography>
