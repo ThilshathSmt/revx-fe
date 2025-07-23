@@ -297,7 +297,8 @@ const RevXHomepage = () => {
                       transition: 'all 0.3s ease',
                     }}
                   >
-                    Sign In
+                   <Typography sx={{ color: '#ffffff' }}>Sign In</Typography>
+                    
                   </Button></Link>
                 </Box>
               ) : (
