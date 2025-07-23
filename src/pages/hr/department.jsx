@@ -49,7 +49,6 @@ const StyledCard = styled(Card)(({ theme }) => ({
   boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
 }));
 
-// Styled components for enhanced UI (added as per above UI design)
 const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   borderRadius: 16,
   boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
@@ -94,6 +93,21 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
     borderRadius: 16,
     background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+  },
+}));
+
+const GradientButton = styled(Button)(({ theme }) => ({
+  borderRadius: 25,
+  padding: theme.spacing(1.5, 4),
+  fontWeight: 700,
+  textTransform: 'none',
+  background: 'linear-gradient(135deg, #0c4672 0%, #00bcd4 100%)',
+  color: 'white',
+  boxShadow: '0 4px 15px rgba(12, 70, 114, 0.3)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    background: 'linear-gradient(135deg, #004877 0%, #00acc1 100%)',
+    boxShadow: '0 6px 20px rgba(0, 188, 212, 0.5)',
   },
 }));
 
@@ -306,48 +320,58 @@ const DepartmentManagement = () => {
   return (
     <HRLayout>
       <Fade in timeout={800}>
-          <StyledCard>
-            <CardContent sx={{ textAlign: 'center', py: 4 }}>
-              <Avatar sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                width: 64, 
-                height: 64, 
-                mx: 'auto', 
-                mb: 2 
-              }}>
-                <BusinessIcon sx={{ fontSize: 40 }} />
-              </Avatar>
-              <Typography variant="h3" gutterBottom sx={{ 
-                fontWeight: 'bold',
-                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-              }}>
-                Department Management
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                Manage your organization's departments efficiently
-              </Typography>
-            </CardContent>
-          </StyledCard>
-        </Fade>
+        <StyledCard>
+          <CardContent sx={{ textAlign: "center", py: 4 }}>
+            <Avatar
+              sx={{
+                bgcolor: "rgba(255,255,255,0.2)",
+                width: 64,
+                height: 64,
+                mx: "auto",
+                mb: 2,
+              }}
+            >
+              <BusinessIcon sx={{ fontSize: 40 }} />
+            </Avatar>
+            <Typography
+              variant="h3"
+              gutterBottom
+              sx={{
+                fontWeight: "bold",
+                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+              }}
+            >
+              Department Management
+            </Typography>
+            <Typography variant="h6" sx={{ opacity: 0.9 }}>
+              Manage your organization's departments efficiently
+            </Typography>
+          </CardContent>
+        </StyledCard>
+      </Fade>
 
-      <Button
-        variant="contained"
-        color="primary"
+      <GradientButton
         onClick={() => setOpen(true)}
-        style={{ marginBottom: "20px" }}
+        sx={{ mb: 3 }}
         disabled={loading}
       >
         {isUpdate ? "Update Department" : "Create Department"}
-      </Button>
+      </GradientButton>
 
       <Fade in timeout={500}>
         <StyledTableContainer component={Paper}>
           <Table>
             <StyledTableHead>
               <TableRow>
-                <TableCell><strong>Department Name</strong></TableCell>
-                <TableCell><strong>Description</strong></TableCell>
-                <TableCell><strong>Actions</strong></TableCell>
+                <TableCell>
+                  <strong>Department Name</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Description</strong>
+                </TableCell>
+                <TableCell>
+                  <strong>Actions</strong>
+                </TableCell>
               </TableRow>
             </StyledTableHead>
             <TableBody>
@@ -356,21 +380,37 @@ const DepartmentManagement = () => {
                 : currentDepartments.map((department) => (
                     <StyledTableRow key={department._id} hover>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
                           <BusinessIcon color="primary" />
-                          <Typography variant="body1">{department.departmentName}</Typography>
+                          <Typography variant="body1">
+                            {department.departmentName}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>{department.description}</TableCell>
                       <TableCell>
-                        <Box sx={{ display: "flex", justifyContent: "center", gap: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 1,
+                          }}
+                        >
                           <ActionButton
                             size="small"
                             onClick={() => handleUpdateDepartment(department)}
                             disabled={actionLoading}
                             sx={{
-                              color: '#4ECDC4',
-                              '&:hover': { backgroundColor: 'rgba(78, 205, 196, 0.1)' }
+                              color: "#4ECDC4",
+                              "&:hover": {
+                                backgroundColor: "rgba(78, 205, 196, 0.1)",
+                              },
                             }}
                           >
                             {actionLoading ? (
@@ -384,8 +424,11 @@ const DepartmentManagement = () => {
                             onClick={() => handleDeleteClick(department)}
                             disabled={actionLoading}
                             sx={{
-                              color: '#FF6B6B',
-                              '&:hover': { backgroundColor: 'rgba(255, 107, 107, 0.1)' }
+                              color: "#FF6B6B",
+                              "&:hover": {
+                                backgroundColor:
+                                  "rgba(255, 107, 107, 0.1)",
+                              },
                             }}
                           >
                             {actionLoading ? (
@@ -423,22 +466,24 @@ const DepartmentManagement = () => {
         TransitionComponent={Slide}
         TransitionProps={{ direction: "up" }}
       >
-        <DialogTitle sx={{
-          background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
-          color: 'white',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(45deg, #0c4672, #00bcd4)",
+            color: "white",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)" }}>
               <BusinessIcon />
             </Avatar>
             <Typography variant="h6">
               {isUpdate ? "Update Department" : "Create New Department"}
             </Typography>
           </Box>
-          <IconButton onClick={resetForm} sx={{ color: 'white' }}>
+          <IconButton onClick={resetForm} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -454,9 +499,11 @@ const DepartmentManagement = () => {
             helperText={formErrors.departmentName}
             disabled={actionLoading}
             InputProps={{
-              startAdornment: <BusinessIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+              startAdornment: (
+                <BusinessIcon sx={{ mr: 1, color: "text.secondary" }} />
+              ),
             }}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
           />
           <TextField
             label="Description"
@@ -470,7 +517,7 @@ const DepartmentManagement = () => {
             error={!!formErrors.description}
             helperText={formErrors.description}
             disabled={actionLoading}
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
           />
         </DialogContent>
         <Divider />
@@ -481,7 +528,7 @@ const DepartmentManagement = () => {
             sx={{
               borderRadius: 25,
               px: 3,
-              textTransform: 'none',
+              textTransform: "none",
             }}
             disabled={actionLoading}
           >
@@ -492,17 +539,23 @@ const DepartmentManagement = () => {
             variant="contained"
             startIcon={<SaveIcon />}
             sx={{
-              background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+              background: "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)",
               borderRadius: 25,
               px: 3,
-              textTransform: 'none',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #45a049 0%, #4CAF50 100%)',
+              textTransform: "none",
+              "&:hover": {
+                background: "linear-gradient(135deg, #45a049 0%, #4CAF50 100%)",
               },
             }}
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={24} color="inherit" /> : isUpdate ? "Update" : "Save"}
+            {actionLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : isUpdate ? (
+              "Update"
+            ) : (
+              "Save"
+            )}
           </Button>
         </DialogActions>
       </StyledDialog>
@@ -514,33 +567,38 @@ const DepartmentManagement = () => {
         PaperProps={{
           sx: {
             borderRadius: 16,
-            background: 'linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)',
+            background: "linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)",
           },
         }}
       >
-        <DialogTitle sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          color: '#E53E3E',
-          fontWeight: 600,
-        }}>
-          <Avatar sx={{ bgcolor: '#FED7D7', color: '#E53E3E' }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            color: "#E53E3E",
+            fontWeight: 600,
+          }}
+        >
+          <Avatar sx={{ bgcolor: "#FED7D7", color: "#E53E3E" }}>
             <DeleteIcon />
           </Avatar>
           Confirm Deletion
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ py: 2 }}>
-            Are you sure you want to delete the department "{departmentToDelete?.departmentName}"?
+            Are you sure you want to delete the department "
+            {departmentToDelete?.departmentName}"?
           </Typography>
           {departmentToDelete && (
-            <Box sx={{
-              p: 2,
-              backgroundColor: 'rgba(229, 62, 62, 0.1)',
-              borderRadius: 2,
-              border: '1px solid rgba(229, 62, 62, 0.2)',
-            }}>
+            <Box
+              sx={{
+                p: 2,
+                backgroundColor: "rgba(229, 62, 62, 0.1)",
+                borderRadius: 2,
+                border: "1px solid rgba(229, 62, 62, 0.2)",
+              }}
+            >
               <Typography variant="subtitle2" color="error">
                 Department: {departmentToDelete.departmentName}
               </Typography>
@@ -554,7 +612,7 @@ const DepartmentManagement = () => {
             sx={{
               borderRadius: 25,
               px: 3,
-              textTransform: 'none',
+              textTransform: "none",
             }}
           >
             Cancel
@@ -568,15 +626,20 @@ const DepartmentManagement = () => {
             sx={{
               borderRadius: 25,
               px: 3,
-              textTransform: 'none',
-              background: 'linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #EE5A52 0%, #FF6B6B 100%)',
+              textTransform: "none",
+              background: "linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%)",
+              "&:hover": {
+                background:
+                  "linear-gradient(135deg, #EE5A52 0%, #FF6B6B 100%)",
               },
             }}
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={24} color="inherit" /> : "Delete Department"}
+            {actionLoading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Delete Department"
+            )}
           </Button>
         </DialogActions>
       </StyledDialog>
@@ -586,17 +649,17 @@ const DepartmentManagement = () => {
         open={!!successMessage}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
         TransitionComponent={Fade}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity="success"
           sx={{
-            width: '100%',
+            width: "100%",
             borderRadius: 2,
-            '& .MuiAlert-icon': {
-              fontSize: '1.5rem',
+            "& .MuiAlert-icon": {
+              fontSize: "1.5rem",
             },
           }}
           variant="filled"
@@ -609,17 +672,17 @@ const DepartmentManagement = () => {
         open={!!error}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
         TransitionComponent={Fade}
       >
         <Alert
           onClose={handleCloseSnackbar}
           severity="error"
           sx={{
-            width: '100%',
+            width: "100%",
             borderRadius: 2,
-            '& .MuiAlert-icon': {
-              fontSize: '1.5rem',
+            "& .MuiAlert-icon": {
+              fontSize: "1.5rem",
             },
           }}
           variant="filled"
