@@ -75,7 +75,7 @@ const TaskManagement = () => {
   const [teamEmployees, setTeamEmployees] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
 

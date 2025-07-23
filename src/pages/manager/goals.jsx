@@ -75,7 +75,7 @@ const GoalManagement = () => {
   const [goalToDelete, setGoalToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const router = useRouter();
 
   // New state for viewing tasks dialog

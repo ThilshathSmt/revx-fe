@@ -59,7 +59,7 @@ const DepartmentManagement = () => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [departmentsPerPage] = useState(7);
+  const [departmentsPerPage] = useState(9);
 
   const router = useRouter();
 
