@@ -36,7 +36,7 @@ import {
   IconButton,
   Divider,
   CircularProgress,
-  Backdrop,
+  Backdrop,InputAdornment
 } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import TablePagination from '@mui/material/TablePagination';
@@ -52,6 +52,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Cancel";
 import HRLayout from "../../components/HRLayout";
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 // Styled components for enhanced UI
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -154,6 +156,7 @@ const UserManagement = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+   const [showNewPassword, setShowNewPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const [newUser, setNewUser] = useState({
     username: "",
@@ -708,23 +711,36 @@ const UserManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  label="Password"
-                  variant="outlined"
-                  fullWidth
-                  name="password"
-                  value={newUser.password}
-                  onChange={handleInputChange}
-                  type="password"
-                  required={!isUpdate}
-                  helperText={isUpdate ? "Leave blank to keep current password" : ""}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                    },
-                  }}
-                />
-              </Grid>
+        <TextField
+          label="Password"
+          variant="outlined"
+          fullWidth
+          name="password"
+          value={newUser.password}
+          onChange={handleInputChange}
+          type={showNewPassword ? 'text' : 'password'}
+          required={!isUpdate}
+          helperText={isUpdate ? "Leave blank to keep current password" : ""}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  edge="end"
+                  size="small"
+                >
+                  {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            },
+          }}
+        />
+      </Grid>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth required>
                   <InputLabel>Role</InputLabel>
