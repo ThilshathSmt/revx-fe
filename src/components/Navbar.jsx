@@ -7,7 +7,7 @@ import {
   InputBase,
   Box,
   Button,
-  Avatar
+  Avatar,Typography
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
@@ -42,12 +42,25 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="sticky" sx={{ backgroundColor: '#153B60' }}>
+    <AppBar position="sticky" sx={{ background: 'linear-gradient(45deg, #0c4672, #00bcd4)', }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
         {/* Logo Section */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Avatar src="/images/logo.png" alt="Logo" sx={{ height: 60, width: 60 }} />
-        </Box>
+                <Avatar
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+                    mr: 2,
+                    borderRadius: 3,
+                  }}
+                >
+                  R
+                </Avatar>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  RevX
+                </Typography>
+              </Box>
 
         {/* Right Section */}
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
