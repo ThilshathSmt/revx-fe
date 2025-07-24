@@ -24,7 +24,8 @@ import {
   Stack,
   Badge,
   Fade,
-  Slide
+  Slide,
+  InputAdornment
 } from '@mui/material';
 import { 
   Edit as EditIcon,
@@ -33,7 +34,9 @@ import {
   PhotoCamera as PhotoCameraIcon,
   Person as PersonIcon,
   Email as EmailIcon,
-  Badge as BadgeIcon
+  Badge as BadgeIcon,
+  Visibility,
+  VisibilityOff
 } from '@mui/icons-material';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
@@ -59,6 +62,8 @@ const Profile = () => {
   const [passwordError, setPasswordError] = useState('');   
   const [updatedUsername, setUpdatedUsername] = useState('');
   const [updatedEmail, setUpdatedEmail] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -159,7 +164,7 @@ const Profile = () => {
         setSnackbarMessage('Failed to upload profile picture.');
         setOpenSnackbar(true);
     }
-};
+  };
 
   const handleOpenPasswordDialog = () => {
     setOpenPasswordDialog(true);
@@ -167,44 +172,44 @@ const Profile = () => {
 
   const handleClosePasswordDialog = () => {
     setOpenPasswordDialog(false);
-    setNewPassword(''); // Clear password fields
+    setNewPassword('');
+    setCurrentPassword('');
     setPasswordError('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
   };
 
   const handlePasswordReset = async () => {
-  if (!currentPassword) {
-    setPasswordError('Current password is required.');
-    return;
-  }
-  if (!newPassword || newPassword.length < 8) {
-    setPasswordError('New password must be at least 8 characters long.');
-    return;
-  }
-
-  try {
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/change-password`,
-      { currentPassword, newPassword },
-      {
-        headers: {
-          Authorization: `Bearer ${user.token}`,
-        },
-      }
-    );
-
-    if (response.status === 200) {
-      setSnackbarMessage('Password updated successfully');
-      setOpenSnackbar(true);
-      handleClosePasswordDialog();
-      setPasswordError('');
-      setCurrentPassword('');
-      setNewPassword('');
+    if (!currentPassword) {
+      setPasswordError('Current password is required.');
+      return;
     }
-  } catch (err) {
-    console.error('Error resetting password:', err);
-    setPasswordError(err.response?.data?.message || 'Failed to reset password.');
-  }
-};
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters long.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/change-password`,
+        { currentPassword, newPassword },
+        {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setSnackbarMessage('Password updated successfully');
+        setOpenSnackbar(true);
+        handleClosePasswordDialog();
+      }
+    } catch (err) {
+      console.error('Error resetting password:', err);
+      setPasswordError(err.response?.data?.message || 'Failed to reset password.');
+    }
+  };
 
   const handleOpenEditProfileDialog = () => {
     setUpdatedUsername(userDetails.username);
@@ -267,7 +272,7 @@ const Profile = () => {
         setSnackbarMessage(errorMessage);
         setOpenSnackbar(true);
     }
-};
+  };
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
@@ -317,7 +322,7 @@ const Profile = () => {
     return (
       <Box sx={{ 
         padding: 4,
-       background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+        background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
@@ -644,7 +649,7 @@ const Profile = () => {
         <DialogContent sx={{ pt: 3 }}>
           <TextField
             label="Current Password"
-            type="password"
+            type={showCurrentPassword ? "text" : "password"}
             fullWidth
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -657,10 +662,24 @@ const Profile = () => {
                 borderRadius: 2
               }
             }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle current password visibility"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    edge="end"
+                    sx={{ color: '#0c4672' }}
+                  >
+                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
           />
           <TextField
             label="New Password"
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             fullWidth
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -672,6 +691,20 @@ const Profile = () => {
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2
               }
+            }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle new password visibility"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    edge="end"
+                    sx={{ color: '#0c4672' }}
+                  >
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
             }}
           />
         </DialogContent>
