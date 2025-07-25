@@ -96,7 +96,7 @@ const ToggleButton = styled(IconButton)(() => ({
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/employee", notification: 0 },
   { text: "My Tasks", icon: <AssignmentIcon />, path: "/employee/tasks", notification: 0 },
-  { text: "Performance Reviews", icon: <EventNoteIcon />, path: "/employee/taskReviews", notification: 0 },
+  { text: "My Task Reviews", icon: <EventNoteIcon />, path: "/employee/taskReviews", notification: 0 },
   { text: "Self Assessment", icon: <BarChartIcon />, path: "/employee/SelfAssessment", notification: 0 },
   { text: "Settings", icon: <SettingsIcon />, path: "/profile/profile", notification: 0 },
 ];
