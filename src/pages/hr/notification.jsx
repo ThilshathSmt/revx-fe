@@ -638,7 +638,10 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                       <Typography variant="subtitle1"><strong>Goal:</strong> {selectedReview?.goalId?.projectTitle || "N/A"}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip status={selectedReview?.status} /></Typography>
+                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip label={selectedReview?.status} 
+                        status={selectedReview?.status} 
+                        sx={{ ml: 1 }}  />
+                        </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography variant="subtitle1" gutterBottom><strong>Manager's Review:</strong></Typography>
@@ -666,7 +669,10 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                       </Grid>
                     )}
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip status={selectedReview?.status} /></Typography>
+                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip  label={selectedReview?.status || "N/A"} 
+                        status={selectedReview?.status} 
+                        sx={{ ml: 1 }} />
+                        </Typography>
                     </Grid>
                     <Grid item xs={12}>
                       <Typography variant="subtitle1" gutterBottom><strong>Employee's Review:</strong></Typography>
