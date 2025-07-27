@@ -7,7 +7,8 @@ import {
   InputBase,
   Box,
   Button,
-  Avatar,Typography
+  Avatar,
+  Typography
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
@@ -15,11 +16,29 @@ import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { signOut } from 'next-auth/react';
-
+import dynamic from 'next/dynamic';
+import { useAuth } from '../hooks/useAuth';  
 import { useNotificationCount } from '../hooks/useNotifications';
-import HRNotificationPage from '../pages/hr/notification';
+
+// Dynamically import notification components with loading states
+const HRNotificationPopup = dynamic(
+  () => import('../pages/hr/notification'),
+  { 
+    loading: () => <Box p={2}>Loading notifications...</Box>,
+    ssr: false 
+  }
+);
+
+const ManagerNotificationPopup = dynamic(
+  () => import('../pages/manager/notification'),
+  { 
+    loading: () => <Box p={2}>Loading notifications...</Box>,
+    ssr: false 
+  }
+);
 
 const Navbar = () => {
+  const { user } = useAuth(); 
   const router = useRouter();
   const { unreadCount } = useNotificationCount();
   const [notificationAnchor, setNotificationAnchor] = useState(null);
@@ -34,50 +53,66 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut({ redirect: false }); // silent sign out
-      router.push('/auth/signin'); // redirect manually
+      await signOut({ redirect: false });
+      router.push('/auth/signin');
     } catch (error) {
       console.error('Error during sign out:', error);
     }
   };
 
   return (
-    <AppBar position="sticky" sx={{ background: 'linear-gradient(45deg, #0c4672, #00bcd4)', }}>
-      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px' }}>
+    <AppBar position="sticky" sx={{ 
+      background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+    }}>
+      <Toolbar sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        padding: { xs: '0 10px', sm: '0 20px' } 
+      }}>
         {/* Logo Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-                        <Avatar
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
-                            mr: 2,
-                            borderRadius: 3,
-                            fontSize: '1.5rem',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          R
-                        </Avatar>
-                        <Typography
-                          variant="h4"
-                          component="div"
-                          sx={{
-                            fontWeight: 'bold',
-                            background: 'linear-gradient(45deg, #ffffff, #00bcd4)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                          }}
-                        >
-                          RevX
-                        </Typography>
-                      </Box>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexGrow: 1,
+            cursor: 'pointer'
+          }}
+          onClick={() => router.push('/')}
+        >
+          <Avatar
+            sx={{
+              width: 48,
+              height: 48,
+              background: 'linear-gradient(45deg, #0c4672, #00bcd4)',
+              mr: 2,
+              borderRadius: 3,
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+            }}
+          >
+            R
+          </Avatar>
+          <Typography
+            variant="h4"
+            component="div"
+            sx={{
+              fontWeight: 'bold',
+              background: 'linear-gradient(45deg, #ffffff, #00bcd4)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              display: { xs: 'none', sm: 'block' }
+            }}
+          >
+            RevX
+          </Typography>
+        </Box>
 
         {/* Right Section */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* Search Bar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Search Bar - Hidden on mobile */}
           <Box sx={{
-            display: 'flex',
+            display: { xs: 'none', md: 'flex' },
             alignItems: 'center',
             backgroundColor: 'white',
             borderRadius: '20px',
@@ -95,23 +130,33 @@ const Navbar = () => {
           {/* Notification Icon */}
           <IconButton
             color="inherit"
-            sx={{ marginRight: 2 }}
             onClick={handleNotificationClick}
             id="notification-button"
+            size="large"
           >
-            <Badge badgeContent={unreadCount} color="error">
+            <Badge badgeContent={unreadCount} color="error" max={99}>
               <NotificationsIcon />
             </Badge>
           </IconButton>
 
           {/* Notification Popup */}
-          <HRNotificationPage
-            isPopup={true}
-            anchorEl={notificationAnchor}
-            onClose={handleCloseNotification}
-          />
+          {notificationAnchor && (
+            user?.role === 'hr' ? (
+              <HRNotificationPopup
+                isPopup={true}
+                anchorEl={notificationAnchor}
+                onClose={handleCloseNotification}
+              />
+            ) : (
+              <ManagerNotificationPopup
+                isPopup={true}
+                anchorEl={notificationAnchor}
+                onClose={handleCloseNotification}
+              />
+            )
+          )}
 
-          {/* Sign Out Button */}
+          {/* Sign Out Button - Hidden on mobile */}
           <Button
             component={motion.button}
             whileHover={{
