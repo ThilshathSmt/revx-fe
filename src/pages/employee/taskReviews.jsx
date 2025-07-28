@@ -374,7 +374,7 @@ const EmployeeTaskReview = () => {
                 sx={{ ml: 2 }}
               />
             </Typography>
-            <Typography variant="body1" gutterBottom><strong>Instructions:</strong> {selectedReview?.description || "No specific instructions."}</Typography>
+            <Typography variant="body1" gutterBottom><strong>HR Instructions:</strong> {selectedReview?.description || "No specific instructions."}</Typography>
             <Divider sx={{ my: 2 }} />
             <TextField
               label="Your Task Review"

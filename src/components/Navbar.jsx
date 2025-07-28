@@ -37,6 +37,14 @@ const ManagerNotificationPopup = dynamic(
   }
 );
 
+const EmployeeNotificationPopup = dynamic(
+  () => import('../pages/employee/notification'),
+  { 
+    loading: () => <Box p={2}>Loading notifications...</Box>,
+    ssr: false 
+  }
+);
+
 const Navbar = () => {
   const { user } = useAuth(); 
   const router = useRouter();
@@ -141,20 +149,26 @@ const Navbar = () => {
 
           {/* Notification Popup */}
           {notificationAnchor && (
-            user?.role === 'hr' ? (
-              <HRNotificationPopup
-                isPopup={true}
-                anchorEl={notificationAnchor}
-                onClose={handleCloseNotification}
-              />
-            ) : (
-              <ManagerNotificationPopup
-                isPopup={true}
-                anchorEl={notificationAnchor}
-                onClose={handleCloseNotification}
-              />
-            )
-          )}
+  user?.role === 'hr' ? (
+    <HRNotificationPopup
+      isPopup={true}
+      anchorEl={notificationAnchor}
+      onClose={handleCloseNotification}
+    />
+  ) : user?.role === 'manager' ? (
+    <ManagerNotificationPopup
+      isPopup={true}
+      anchorEl={notificationAnchor}
+      onClose={handleCloseNotification}
+    />
+  ) : (
+    <EmployeeNotificationPopup
+      isPopup={true}
+      anchorEl={notificationAnchor}
+      onClose={handleCloseNotification}
+    />
+  )
+)}
 
           {/* Sign Out Button - Hidden on mobile */}
           <Button
