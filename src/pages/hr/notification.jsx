@@ -35,7 +35,6 @@ import {
   Snackbar,
   Alert,
   Grid,
-  Skeleton,
   Slide,
   Fade,
   styled,
@@ -200,7 +199,7 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
     setOpenViewDialog(true);
 
     try {
-      const entityType = notification.entityType;
+      const entityType = notification.type === "GoalReviewSubmitted" ? 'GoalReview' : 'TaskReview';
       const entityId = notification.relatedEntityId;
       const url = entityType === 'GoalReview' 
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goalReviews/${entityId}`
@@ -217,29 +216,29 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             : null;
 
         setSelectedReview({
+          id: response.data._id,
           type: 'TaskReview',
           employeeId: response.data.employeeId,
           taskId: taskData,
           goalId: goalData,
           status: response.data.status,
-          employeeReview: response.data.employeeReview,
           submissionDate: response.data.submissionDate
         });
       } else {
         setSelectedReview({
+          id: response.data._id,
           type: 'GoalReview',
           managerId: response.data.managerId,
           teamId: response.data.teamId,
           goalId: response.data.goalId,
           status: response.data.status,
-          managerReview: response.data.managerReview,
           submissionDate: response.data.submissionDate
         });
       }
     } catch (error) {
       console.error("Error fetching review details:", error.response?.data?.message || error.message);
       setSelectedReview(null);
-      showSnackbar("Failed to load review details", "error");
+      showSnackbar("This review is deleted By you", "error");
     } finally {
       setIsLoadingReview(false);
     }
@@ -282,8 +281,15 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
     if (onClose) onClose();
     
     const reviewId = notification.relatedEntityId;
-    const targetPage = notification.entityType === 'GoalReview' ? 'GoalReview' : 'TaskReview';
+    const targetPage = notification.type === "GoalReviewSubmitted" ? 'goalReviews' : 'taskReviews';
     router.push(`/hr/${targetPage}?reviewId=${reviewId}`);
+  };
+
+  const handleViewFullDetails = () => {
+    if (!selectedReview) return;
+    setOpenViewDialog(false);
+    const targetPage = selectedReview.type === 'GoalReview' ? 'goalReviews' : 'taskReviews';
+    router.push(`/hr/${targetPage}?reviewId=${selectedReview.id}`);
   };
 
   const getNotificationIcon = (type) => {
@@ -300,6 +306,18 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
 
   const handleCloseSnackbar = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (isPopup) {
@@ -319,11 +337,12 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             marginTop: '10px', 
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
             borderRadius: 5,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            width: 360
           } 
         }}
       >
-        <Box sx={{ width: 360 }}>
+        <Box>
           <Box sx={{ 
             background: "linear-gradient(45deg, #0c4672, #00bcd4)",
             color: "white",
@@ -337,10 +356,7 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             </Avatar>
             <Typography variant="h6">HR Notifications</Typography>
             {unreadCount > 0 && (
-              <Box sx={{ 
-                ml: 'auto',
-                position: 'relative'
-              }}>
+              <Box sx={{ ml: 'auto', position: 'relative' }}>
                 <NotificationBadge unread={unreadCount > 0}>
                   {unreadCount > 0 ? unreadCount : ''}
                 </NotificationBadge>
@@ -360,7 +376,8 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                         backgroundColor: notification.isRead ? "white" : "#e3f2fd",
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7'
+                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7',
+                          cursor: 'pointer'
                         }
                       }}
                     >
@@ -625,7 +642,7 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             ) : !selectedReview ? (
               <Typography>Could not load review details.</Typography>
             ) : (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid container spacing={3} sx={{ mt: 1, p: 2 }}>
                 {selectedReview.type === 'GoalReview' ? (
                   <>
                     <Grid item xs={12} sm={6}>
@@ -638,20 +655,17 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                       <Typography variant="subtitle1"><strong>Goal:</strong> {selectedReview?.goalId?.projectTitle || "N/A"}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip label={selectedReview?.status} 
-                        status={selectedReview?.status} 
-                        sx={{ ml: 1 }}  />
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle1" gutterBottom><strong>Manager's Review:</strong></Typography>
-                      <Paper elevation={2} sx={{ p: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 2 }}>
-                        {selectedReview?.managerReview || "No review submitted yet."}
-                      </Paper>
+                      <Typography variant="subtitle1"><strong>Status:</strong> 
+                        <StatusChip 
+                          label={selectedReview?.status || "N/A"} 
+                          status={selectedReview?.status} 
+                          sx={{ ml: 1 }} 
+                        />
+                      </Typography>
                     </Grid>
                     {selectedReview.submissionDate && (
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle1"><strong>Submitted on:</strong> {new Date(selectedReview.submissionDate).toLocaleString()}</Typography>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle1"><strong>Submitted on:</strong> {formatDate(selectedReview.submissionDate)}</Typography>
                       </Grid>
                     )}
                   </>
@@ -669,20 +683,17 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                       </Grid>
                     )}
                     <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle1"><strong>Status:</strong> <StatusChip  label={selectedReview?.status || "N/A"} 
-                        status={selectedReview?.status} 
-                        sx={{ ml: 1 }} />
-                        </Typography>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle1" gutterBottom><strong>Employee's Review:</strong></Typography>
-                      <Paper elevation={2} sx={{ p: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 2 }}>
-                        {selectedReview?.employeeReview || "No review submitted yet."}
-                      </Paper>
+                      <Typography variant="subtitle1"><strong>Status:</strong> 
+                        <StatusChip 
+                          label={selectedReview?.status || "N/A"} 
+                          status={selectedReview?.status} 
+                          sx={{ ml: 1 }} 
+                        />
+                      </Typography>
                     </Grid>
                     {selectedReview.submissionDate && (
-                      <Grid item xs={12} sm={6}>
-                        <Typography variant="subtitle1"><strong>Submitted on:</strong> {new Date(selectedReview.submissionDate).toLocaleString()}</Typography>
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle1"><strong>Submitted on:</strong> {formatDate(selectedReview.submissionDate)}</Typography>
                       </Grid>
                     )}
                   </>
@@ -706,6 +717,22 @@ const HRNotificationPage = ({ isPopup, anchorEl, onClose }) => {
               }}
             >
               Close
+            </Button>
+            
+            <Button 
+              onClick={handleViewFullDetails}
+              variant="contained"
+              sx={{ 
+                borderRadius: 25, 
+                px: 3, 
+                textTransform: 'none',
+                background: 'linear-gradient(135deg, #15B2C0 0%, #0c4672 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #0c4672 0%, #15B2C0 100%)'
+                }
+              }}
+            >
+              View Full Details
             </Button>
           </DialogActions>
         </StyledDialog>
