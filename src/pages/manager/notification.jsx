@@ -45,7 +45,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import ManagerLayout from "../../components/ManagerLayout";
 
-// Styled components for enhanced UI - Updated to match HR colors
+// Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   background: "linear-gradient(45deg, #0c4672, #00bcd4)",
   color: "white",
@@ -154,7 +154,6 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/notifications`,
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
-      // Filter for manager-specific goal review notifications only
       const managerNotifications = response.data.filter(
         n => n.type === "GoalReviewCreated"
       );
@@ -210,18 +209,19 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
       );
       
       setSelectedReview({
+        id: response.data._id,
         type: 'GoalReview',
         goal: response.data.goalId,
         team: response.data.teamId,
         dueDate: response.data.dueDate,
         status: response.data.status,
-        description: response.data.description,
-        submissionDate: response.data.submissionDate
+        submissionDate: response.data.submissionDate,
+        managerReview: response.data.managerReview
       });
     } catch (error) {
       console.error("Error fetching review details:", error.response?.data?.message || error.message);
       setSelectedReview(null);
-      showSnackbar("Review cycle is deleted by Hr", "error");
+      showSnackbar("This Goal review is deleted by HR", "error");
     } finally {
       setIsLoadingReview(false);
     }
@@ -262,11 +262,23 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
   const handlePopupClick = (notification) => {
     if (!notification.isRead) markAsRead(notification._id);
     if (onClose) onClose();
-    router.push(`/manager/goal-reviews/${notification.relatedEntityId}`);
+    router.push({
+      pathname: '/manager/goalReviews',
+      query: { reviewId: notification.relatedEntityId }
+    });
+  };
+
+  const handleViewFullDetails = () => {
+    if (!selectedReview) return;
+    setOpenViewDialog(false);
+    router.push({
+      pathname: '/manager/goalReviews',
+      query: { reviewId: selectedReview.id }
+    });
   };
 
   const getNotificationIcon = () => {
-    return "🎯"; // Only goal reviews, so always return target icon
+    return "🎯";
   };
 
   const showSnackbar = (message, severity) => {
@@ -345,7 +357,8 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                         backgroundColor: notification.isRead ? "white" : "#e3f2fd",
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7'
+                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7',
+                          cursor: 'pointer'
                         }
                       }}
                     >
@@ -610,7 +623,7 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             ) : !selectedReview ? (
               <Typography>Could not load review details.</Typography>
             ) : (
-              <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid container spacing={3} sx={{ mt: 1, p: 2 }}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle1"><strong>Goal:</strong> {selectedReview?.goal?.projectTitle || "N/A"}</Typography>
                 </Grid>
@@ -629,16 +642,23 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                     />
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" gutterBottom><strong>Description:</strong></Typography>
-                  <Paper elevation={2} sx={{ p: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 2 }}>
-                    {selectedReview?.description || "No description provided."}
-                  </Paper>
-                </Grid>
-                {selectedReview.submissionDate && (
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle1"><strong>Submitted on:</strong> {formatDate(selectedReview.submissionDate)}</Typography>
-                  </Grid>
+                
+                {selectedReview.status === 'Completed' && (
+                  <>
+                    {selectedReview.submissionDate && (
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle1"><strong>Submitted on:</strong> {formatDate(selectedReview.submissionDate)}</Typography>
+                      </Grid>
+                    )}
+                    {selectedReview.managerReview && (
+                      <Grid item xs={12}>
+                        <Typography variant="subtitle1" gutterBottom><strong>Your Review:</strong></Typography>
+                        <Paper elevation={2} sx={{ p: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 2 }}>
+                          {selectedReview.managerReview}
+                        </Paper>
+                      </Grid>
+                    )}
+                  </>
                 )}
               </Grid>
             )}
@@ -660,19 +680,17 @@ const ManagerNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             >
               Close
             </Button>
+            
             <Button 
-              onClick={() => {
-                setOpenViewDialog(false);
-                router.push(`/manager/goal-reviews/${selectedReview?.id}`);
-              }}
+              onClick={handleViewFullDetails}
               variant="contained"
               sx={{ 
                 borderRadius: 25, 
                 px: 3, 
                 textTransform: 'none',
-                background: 'linear-gradient(135deg, #0c4672 0%, #00bcd4 100%)',
+                background: 'linear-gradient(135deg, #15B2C0 0%, #0c4672 100%)',
                 '&:hover': {
-                  background: 'linear-gradient(135deg, #004877 0%, #00acc1 100%)'
+                  background: 'linear-gradient(135deg, #0c4672 0%, #15B2C0 100%)'
                 }
               }}
             >
