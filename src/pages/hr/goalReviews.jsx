@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../../hooks/useAuth";
 import { useRouter } from "next/router";
@@ -164,6 +164,33 @@ const GoalReviewManagement = () => {
     return touchedFields.description && newReview.description.trim() === "";
   };
 
+  const fetchReviews = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goalReviews`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      setReviews(response.data);
+    } catch (err) {
+      setError("Failed to fetch review cycles");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchManagers = useCallback(async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const managers = response.data.filter(user => user.role === "manager");
+      setManagers(managers);
+    } catch (err) {
+      console.error("Error fetching managers:", err);
+      setError("Failed to fetch managers");
+    }
+  }, [user]);
+
   useEffect(() => {
     if (!user || user.role !== "hr") {
       router.push("/");
@@ -171,7 +198,7 @@ const GoalReviewManagement = () => {
       fetchReviews();
       fetchManagers();
     }
-  }, [user, router]);
+  }, [user, router, fetchReviews, fetchManagers]);
 
   useEffect(() => {
     const goalsWithReviewsSet = new Set();
@@ -183,59 +210,8 @@ const GoalReviewManagement = () => {
     setGoalsWithReviews(goalsWithReviewsSet);
   }, [reviews]);
 
-  useEffect(() => {
-    const fetchTeamsIfNeeded = async () => {
-      if (newReview.managerId) {
-        await fetchManagerTeams(newReview.managerId);
-      } else {
-        setTeams([]);
-        setNewReview(prev => ({
-          ...prev,
-          teamId: "",
-          goalId: "",
-        }));
-      }
-    };
-    fetchTeamsIfNeeded();
-  }, [newReview.managerId]);
-
-  useEffect(() => {
-    if (newReview.teamId) {
-      fetchTeamGoals(newReview.teamId);
-    } else {
-      setGoals([]);
-      setNewReview(prev => ({ ...prev, goalId: "" }));
-    }
-  }, [newReview.teamId]);
-
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goalReviews`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      setReviews(response.data);
-      setLoading(false);
-    } catch (err) {
-      setError("Failed to fetch review cycles");
-      setLoading(false);
-    }
-  };
-
-  const fetchManagers = async () => {
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/all`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      });
-      const managers = response.data.filter(user => user.role === "manager");
-      setManagers(managers);
-    } catch (err) {
-      console.error("Error fetching managers:", err);
-      setError("Failed to fetch managers");
-    }
-  };
-
-  const fetchManagerTeams = async (managerId) => {
+  const fetchManagerTeams = useCallback(async (managerId) => {
+    if (!managerId) return;
     try {
       const managerRes = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/fetch/${managerId}`,
@@ -255,18 +231,14 @@ const GoalReviewManagement = () => {
         }
       );  
       setTeams(teamsRes.data);
-      setNewReview(prev => ({
-        ...prev,
-        teamId: "",
-        goalId: ""
-      }));
     } catch (err) {
       console.error("Failed to fetch manager teams:", err);
       setTeams([]);
     }
-  };
+  }, [user]);
 
-  const fetchTeamGoals = async (teamId) => {
+  const fetchTeamGoals = useCallback(async (teamId) => {
+    if (!teamId) return;
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/team/${teamId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
@@ -276,7 +248,30 @@ const GoalReviewManagement = () => {
       console.error("Failed to fetch team goals:", err);
       setGoals([]);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    const isManagerChanged = isUpdate && selectedReview?.managerId?._id !== newReview.managerId;
+    if (isManagerChanged) {
+      setNewReview(prev => ({ ...prev, teamId: "", goalId: "" }));
+      setTeams([]);
+      setGoals([]);
+    }
+    fetchManagerTeams(newReview.managerId);
+  }, [newReview.managerId, isUpdate, selectedReview, fetchManagerTeams]);
+
+  useEffect(() => {
+    const isTeamChanged = isUpdate && selectedReview?.teamId?._id !== newReview.teamId;
+    if (isTeamChanged) {
+      setNewReview(prev => ({ ...prev, goalId: "" }));
+      setGoals([]);
+    }
+    if (newReview.teamId) {
+      fetchTeamGoals(newReview.teamId);
+    } else {
+      setGoals([]);
+    }
+  }, [newReview.teamId, isUpdate, selectedReview, fetchTeamGoals]);
 
   const getFilteredGoals = () => {
     return goals.filter(goal => {
@@ -293,51 +288,62 @@ const GoalReviewManagement = () => {
       : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goalReviews/create`;
     const method = isUpdate ? "put" : "post";
 
+    // Note: Your backend controller for update only accepts `description`, `dueDate`, `teamId`, `goalId`.
+    // It does not update the managerId. This payload reflects that.
+    const payload = { ...newReview };
+    if (isUpdate) {
+        delete payload.managerId;
+        delete payload.status;
+    } else {
+        payload.hrAdminId = user.id;
+        payload.status = "Pending";
+    }
+
     try {
       setActionLoading(true);
       await axios({
         method,
         url,
-        data: {
-          ...newReview,
-          hrAdminId: user.id,
-          status: "Pending"
-        },
+        data: payload,
         headers: { Authorization: `Bearer ${user.token}` },
       });
       setSuccessMessage(`Review cycle ${isUpdate ? 'updated' : 'created'} successfully!`);
       fetchReviews();
       resetForm();
     } catch (err) {
-      setError("Failed to save review cycle");
+      setError(`Failed to save review cycle. ${err.response?.data?.message || ''}`);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const handleUpdateReview = (review) => {
+  const handleUpdateReview = useCallback(async (review) => {
+    setIsUpdate(true);
+    setSelectedReview(review);
+    setError(null);
+    setTouchedFields({ description: false });
+
+    setTeams([]);
+    setGoals([]);
+
+    if (review.managerId?._id) {
+      await fetchManagerTeams(review.managerId._id);
+      if (review.teamId?._id) {
+        await fetchTeamGoals(review.teamId._id);
+      }
+    }
+
     setNewReview({
       managerId: review.managerId?._id || "",
       teamId: review.teamId?._id || "",
       goalId: review.goalId?._id || "",
       dueDate: review.dueDate?.split("T")[0] || "",
       description: review.description || "",
-      status: "Pending"
+      status: review.status || "Pending"
     });
-    setIsUpdate(true);
-    setSelectedReview(review);
-    setOpen(true);
-    setError(null);
-    setTouchedFields({ description: false });
     
-    if (review.managerId?._id) {
-      fetchManagerTeams(review.managerId._id).then(() => {
-        if (review.teamId?._id) {
-          fetchTeamGoals(review.teamId._id);
-        }
-      });
-    }
-  };
+    setOpen(true);
+  }, [fetchManagerTeams, fetchTeamGoals]);
 
   const handleViewReview = (review) => {
     setSelectedReview(review);
@@ -458,7 +464,10 @@ const GoalReviewManagement = () => {
             <Skeleton variant="rectangular" width={150} height={36} />
           ) : (
             <GradientButton 
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+              }}
             >
               Create Review Cycle
             </GradientButton>
@@ -627,7 +636,7 @@ const GoalReviewManagement = () => {
               label="Status"
               name="status"
               fullWidth
-              value="Pending"
+              value={newReview.status}
               margin="dense"
               InputProps={{ readOnly: true }}
             />
