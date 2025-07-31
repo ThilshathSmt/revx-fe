@@ -13,12 +13,12 @@ import {
   Divider,
   Button,
   Typography,
+  TableContainer,
   Box,
   Paper,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TablePagination,
@@ -46,7 +46,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import TaskIcon from '@mui/icons-material/Task';
 import EmployeeLayout from "../../components/EmployeeLayout";
 
-// Styled components with ManagerNotificationPage color scheme
+// Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
   background: "linear-gradient(45deg, #0c4672, #00bcd4)",
   color: "white",
@@ -214,18 +214,31 @@ const EmployeeNotificationPage = ({ isPopup, anchorEl, onClose }) => {
         { headers: { Authorization: `Bearer ${user.token}` } }
       );
       
+      // Extract populated data from response
+      const taskData = response.data.taskId || {};
+      const goalData = response.data.projectId || {};
+      const teamData = response.data.teamId || {};
+      
       setSelectedReview({
+        id: response.data._id,
         type: 'TaskReview',
-        task: response.data.taskId,
+        task: {
+          taskTitle: taskData.taskTitle || "N/A",
+        },
+        goal: {
+          projectTitle: goalData.projectTitle || "N/A"
+        },
+        team: {
+          teamName: teamData.teamName || "N/A"
+        },
         dueDate: response.data.dueDate,
         status: response.data.status,
-        description: response.data.description,
         submissionDate: response.data.submissionDate
       });
     } catch (error) {
       console.error("Error fetching task review details:", error.response?.data?.message || error.message);
       setSelectedReview(null);
-      showSnackbar("Task review is deleted by HR", "error");
+      showSnackbar("This Task review is deleted by HR", "error");
     } finally {
       setIsLoadingReview(false);
     }
@@ -266,7 +279,19 @@ const EmployeeNotificationPage = ({ isPopup, anchorEl, onClose }) => {
   const handlePopupClick = (notification) => {
     if (!notification.isRead) markAsRead(notification._id);
     if (onClose) onClose();
-    router.push(`/employee/taskReviews/${notification.relatedEntityId}`);
+    router.push({
+      pathname: '/employee/taskReviews',
+      query: { reviewId: notification.relatedEntityId }
+    });
+  };
+
+  const handleViewFullDetails = () => {
+    if (!selectedReview) return;
+    setOpenViewDialog(false);
+    router.push({
+      pathname: '/employee/taskReviews',
+      query: { reviewId: selectedReview.id }
+    });
   };
 
   const getNotificationIcon = () => {
@@ -349,7 +374,8 @@ const EmployeeNotificationPage = ({ isPopup, anchorEl, onClose }) => {
                         backgroundColor: notification.isRead ? "white" : "#e3f2fd",
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7'
+                          backgroundColor: notification.isRead ? '#f5f5f5' : '#d0e3f7',
+                          cursor: 'pointer'
                         }
                       }}
                     >
@@ -614,31 +640,51 @@ const EmployeeNotificationPage = ({ isPopup, anchorEl, onClose }) => {
             ) : !selectedReview ? (
               <Typography>Could not load review details.</Typography>
             ) : (
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1"><strong>Task:</strong> {selectedReview?.task?.taskTitle || "N/A"}</Typography>
-                </Grid>
+              <Grid container spacing={3} sx={{ mt: 1, p: 2 }}>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle1"><strong>Due Date:</strong> {formatDate(selectedReview?.dueDate)}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Team:</Typography>
+                    <Typography>{selectedReview?.team?.teamName || "N/A"}</Typography>
+                  </Box>
                 </Grid>
+                
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle1"><strong>Status:</strong> 
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Goal:</Typography>
+                    <Typography>{selectedReview?.goal?.projectTitle || "N/A"}</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Task:</Typography>
+                    <Typography>{selectedReview?.task?.taskTitle || "N/A"}</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Due Date:</Typography>
+                    <Typography>{formatDate(selectedReview?.dueDate)}</Typography>
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Status:</Typography>
                     <StatusChip 
                       label={selectedReview?.status || "N/A"} 
                       status={selectedReview?.status} 
-                      sx={{ ml: 1 }} 
                     />
-                  </Typography>
+                  </Box>
                 </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" gutterBottom><strong>Description:</strong></Typography>
-                  <Paper elevation={2} sx={{ p: 2, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 2 }}>
-                    {selectedReview?.description || "No description provided."}
-                  </Paper>
-                </Grid>
+                
                 {selectedReview.submissionDate && (
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle1"><strong>Submitted on:</strong> {formatDate(selectedReview.submissionDate)}</Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="subtitle1" sx={{ minWidth: 120, fontWeight: 'bold' }}>Submitted on:</Typography>
+                      <Typography>{formatDate(selectedReview.submissionDate)}</Typography>
+                    </Box>
                   </Grid>
                 )}
               </Grid>
@@ -662,10 +708,7 @@ const EmployeeNotificationPage = ({ isPopup, anchorEl, onClose }) => {
               Close
             </Button>
             <Button 
-              onClick={() => {
-                setOpenViewDialog(false);
-                router.push(`/employee/taskReviews/view/${selectedReview?.id}`);
-              }}
+              onClick={handleViewFullDetails}
               variant="contained"
               sx={{ 
                 borderRadius: 25, 
