@@ -98,12 +98,12 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
   minWidth: '100px',
   textAlign: 'center',
   ...(status === 'Pending' && {
-    backgroundColor: "#d3d3d3", 
-    color: "#000", 
+    backgroundColor: "#d3d3d3",
+    color: "#000",
   }),
   ...(status === 'Completed' && {
-    backgroundColor: "#90ee90", 
-    color: "#000", 
+    backgroundColor: "#90ee90",
+    color: "#000",
   }),
 }));
 
@@ -147,6 +147,7 @@ const TaskReviewManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [formValid, setFormValid] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [isFetchingDependencies, setIsFetchingDependencies] = useState(false);
 
   // Check form validity
   useEffect(() => {
@@ -189,13 +190,18 @@ const TaskReviewManagement = () => {
             }
           );
           setTeams(response.data);
-          setNewReview((prev) => ({
-            ...prev,
-            teamId: "",
-            projectId: "",
-            taskId: "",
-            employeeId: "",
-          }));
+          
+          // Only reset teamId if we're not in update mode or if the department changed
+          if (!isUpdate || !selectedReview || 
+              (selectedReview.departmentId?._id || selectedReview.departmentId) !== newReview.departmentId) {
+            setNewReview(prev => ({
+              ...prev,
+              teamId: "",
+              projectId: "",
+              taskId: "",
+              employeeId: "",
+            }));
+          }
         } catch (err) {
           console.error("Failed to fetch teams:", err);
           setTeams([]);
@@ -206,7 +212,7 @@ const TaskReviewManagement = () => {
       }
     };
     fetchTeamsForDepartment();
-  }, [newReview.departmentId, user]);
+  }, [newReview.departmentId, user, isUpdate, selectedReview]);
 
   // Fetch goals when team changes
   useEffect(() => {
@@ -218,12 +224,17 @@ const TaskReviewManagement = () => {
             { headers: { Authorization: `Bearer ${user.token}` } }
           );
           setGoals(response.data);
-          setNewReview((prev) => ({
-            ...prev,
-            projectId: "",
-            taskId: "",
-            employeeId: "",
-          }));
+          
+          // Only reset projectId if we're not in update mode or if the team changed
+          if (!isUpdate || !selectedReview || 
+              (selectedReview.teamId?._id || selectedReview.teamId) !== newReview.teamId) {
+            setNewReview(prev => ({
+              ...prev,
+              projectId: "",
+              taskId: "",
+              employeeId: "",
+            }));
+          }
         } catch (err) {
           console.error("Failed to fetch goals:", err);
           setGoals([]);
@@ -234,13 +245,14 @@ const TaskReviewManagement = () => {
       }
     };
     fetchGoalsForTeam();
-  }, [newReview.teamId, user]);
+  }, [newReview.teamId, user, isUpdate, selectedReview]);
 
   // Fetch tasks when project changes
   useEffect(() => {
     const fetchTasksForGoal = async () => {
       if (newReview.projectId) {
         try {
+          setIsFetchingDependencies(true);
           // First fetch all tasks for the goal
           const tasksResponse = await axios.get(
             `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/project/${newReview.projectId}`,
@@ -263,29 +275,23 @@ const TaskReviewManagement = () => {
           );
 
           setTasks(availableTasks);
-          setNewReview(prev => ({
-            ...prev,
-            taskId: "",
-            employeeId: "",
-          }));
-
-          // If updating and the current task is in the goal, include it
-          if (isUpdate && selectedReview) {
-            const currentTaskId = selectedReview.taskId?._id || selectedReview.taskId;
-            const currentTask = tasksResponse.data.find(task => task._id === currentTaskId);
-            if (currentTask && !availableTasks.some(t => t._id === currentTaskId)) {
-              setTasks([...availableTasks, currentTask]);
-              setNewReview(prev => ({
-                ...prev,
-                taskId: currentTaskId,
-              }));
-            }
+          
+          // Only reset taskId if we're not in update mode or if the project changed
+          if (!isUpdate || !selectedReview || 
+              (selectedReview.projectId?._id || selectedReview.projectId) !== newReview.projectId) {
+            setNewReview(prev => ({
+              ...prev,
+              taskId: "",
+              employeeId: "",
+            }));
           }
         } catch (err) {
           console.error("Failed to fetch tasks:", err);
           setTasks([]);
           setAllTasks([]);
           showSnackbar("Failed to fetch tasks", "error");
+        } finally {
+          setIsFetchingDependencies(false);
         }
       } else {
         setTasks([]);
@@ -480,11 +486,16 @@ const TaskReviewManagement = () => {
   };
 
   // Open update dialog with selected review data
-  const handleUpdateReview = (review) => {
+  const handleUpdateReview = async (review) => {
     if (review.status !== "Pending") {
       showSnackbar("Only Pending reviews can be updated", "warning");
       return;
     }
+
+    setIsUpdate(true);
+    setSelectedReview(review);
+    
+    // Set the basic fields first
     setNewReview({
       departmentId: review.departmentId?._id || review.departmentId || "",
       teamId: review.teamId?._id || review.teamId || "",
@@ -497,11 +508,87 @@ const TaskReviewManagement = () => {
       description: review.description || "",
       status: review.status || "Pending",
     });
-    setIsUpdate(true);
-    setSelectedReview(review);
-    setOpen(true);
+
+    // Now fetch all the dependent data
+    try {
+      setIsFetchingDependencies(true);
+      
+      // Fetch teams for the department
+      const teamsResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/teams`,
+        {
+          params: { departmentId: review.departmentId?._id || review.departmentId },
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
+      );
+      setTeams(teamsResponse.data);
+
+      // Fetch goals for the team
+      const goalsResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/goals/team/${review.teamId?._id || review.teamId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setGoals(goalsResponse.data);
+
+      // Fetch tasks for the goal
+      const tasksResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/project/${review.projectId?._id || review.projectId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      setAllTasks(tasksResponse.data);
+
+      // Get all reviews to filter tasks
+      const reviewsResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/taskReviews`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+
+      const reviewedTaskIds = reviewsResponse.data
+        .filter(r => r._id !== review._id) // Exclude current review
+        .map(r => r.taskId?._id || r.taskId);
+
+      const availableTasks = tasksResponse.data.filter(
+        task => !reviewedTaskIds.includes(task._id)
+      );
+
+      // Include the current task even if it's already reviewed by others
+      const currentTaskId = review.taskId?._id || review.taskId;
+      const currentTask = tasksResponse.data.find(task => task._id === currentTaskId);
+      if (currentTask && !availableTasks.some(t => t._id === currentTaskId)) {
+        setTasks([...availableTasks, currentTask]);
+      } else {
+        setTasks(availableTasks);
+      }
+
+      // Fetch employee for the task
+      const employeeResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/task/${review.taskId?._id || review.taskId}/employee`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      const employee = employeeResponse.data;
+      if (employee && employee._id) {
+        setEmployees([employee]);
+      }
+
+      // Fetch task details to get due date
+      const taskDetailsResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/tasks/${review.taskId?._id || review.taskId}`,
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      const task = taskDetailsResponse.data;
+      if (task && task.dueDate) {
+        setTaskDueDate(new Date(task.dueDate));
+      }
+
+      setOpen(true);
+    } catch (err) {
+      console.error("Error fetching review dependencies:", err);
+      showSnackbar("Error loading review data", "error");
+    } finally {
+      setIsFetchingDependencies(false);
+    }
   };
-  
+
   // Handle view for HR
   const handleViewReview = (review) => {
     setSelectedReview(review);
@@ -514,13 +601,13 @@ const TaskReviewManagement = () => {
     setEmployeeReviewText(review.employeeReview || "");
     setOpen(true);
   };
-  
+
   // Open Delete Confirmation
   const handleDeleteClick = (review) => {
     setReviewToDelete(review);
     setDeleteDialogOpen(true);
   };
-  
+
   // Delete a task review
   const handleDeleteReview = async () => {
     if (!reviewToDelete) return;
@@ -568,6 +655,11 @@ const TaskReviewManagement = () => {
     setOpen(false);
     setIsUpdate(false);
     setSelectedReview(null);
+    setTeams([]);
+    setGoals([]);
+    setTasks([]);
+    setAllTasks([]);
+    setEmployees([]);
   };
 
   // Show snackbar notification
@@ -647,177 +739,177 @@ const TaskReviewManagement = () => {
         </Fade>
 
         {viewMode === "hr" && (
-            <Box sx={{ display: "flex", justifyContent: "flex-start", alignItems: "center", mb: 3 }}>
-                <GradientButton
-                    onClick={() => { setIsUpdate(false); setOpen(true); }}
-                    disabled={loading}
-                >
-                    Create New Task Review
-                </GradientButton>
-            </Box>
+          <Box sx={{ display: "flex", justifyContent: "flex-start", alignItems: "center", mb: 3 }}>
+              <GradientButton
+                  onClick={() => { setIsUpdate(false); setOpen(true); }}
+                  disabled={loading}
+              >
+                  Create New Task Review
+              </GradientButton>
+          </Box>
         )}
 
         <Paper sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.12)' }}>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ background: 'linear-gradient(45deg, #0c4672, #00bcd4)' }}>
-                     {viewMode === "hr" ? (
-                      <>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Department</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Team</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Goal</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Task</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Employee</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Due Date</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Task</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Due Date</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>HR Description</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Your Review</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Submission Date</TableCell>
-                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loading ? (
-                    renderSkeleton()
-                  ) : reviews.length > 0 ? (
-                    (rowsPerPage > 0
-                      ? reviews.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      : reviews
-                    ).map((review) => (
-                      <StyledTableRow key={review._id}>
-                        {viewMode === "hr" ? (
-                          <>
-                            <TableCell>{review.departmentId?.departmentName || "N/A"}</TableCell>
-                            <TableCell>{review.teamId?.teamName || "N/A"}</TableCell>
-                            <TableCell>{review.projectId?.projectTitle || "N/A"}</TableCell>
-                            <TableCell>{review.taskId?.taskTitle || "N/A"}</TableCell>
-                            <TableCell>{review.employeeId?.username || "N/A"}</TableCell>
-                            <TableCell>
-                              {review.dueDate
-                                ? new Date(review.dueDate).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <StatusChip label={review.status} status={review.status} />
-                            </TableCell>
-                            <TableCell>
-                              <Tooltip title={review.description || "N/A"} arrow>
-                                <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
-                                    {review.description || "N/A"}
-                                </Typography>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Box sx={{ display: "flex", gap: 1, justifyContent: 'center' }}>
-                                <Tooltip title={review.status === "Completed" ? "View Review" : "Edit Review"}>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => review.status === "Completed" ? handleViewReview(review) : handleUpdateReview(review)}
-                                    sx={{ 
-                                      color: review.status === "Completed" ? 'info.main' : 'primary.main',
-                                    }}
-                                  >
-                                    {review.status === "Completed" ? <VisibilityIcon /> : <EditIcon />}
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Delete Review">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleDeleteClick(review)}
-                                    sx={{ 
-                                      color: 'error.main',
-                                    }}
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            </TableCell>
-                          </>
-                        ) : (
-                          <>
-                            <TableCell>{review.taskId?.taskTitle || "N/A"}</TableCell>
-                            <TableCell>
-                              {review.dueDate
-                                ? new Date(review.dueDate).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell>
-                              <StatusChip label={review.status} status={review.status} />
-                            </TableCell>
-                            <TableCell>
-                                <Tooltip title={review.description || "N/A"} arrow>
-                                    <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
-                                        {review.description || "N/A"}
-                                    </Typography>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell>
-                                {review.employeeReview || "Not submitted"}
-                            </TableCell>
-                            <TableCell>
-                              {review.submissionDate
-                                ? new Date(review.submissionDate).toLocaleDateString()
-                                : "N/A"}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Button
-                                    variant="outlined"
-                                    size="small"
-                                    color={review.status === "Completed" ? "info" : "primary"}
-                                    onClick={() => handleEmployeeAction(review)}
-                                    startIcon={review.status === "Completed" ? <VisibilityIcon /> : <EditIcon />}
-                                    sx={{ 
-                                      borderRadius: '20px',
-                                      textTransform: 'none',
-                                      fontWeight: 'bold',
-                                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                    }}
-                                >
-                                    {review.status === "Completed" ? "View" : review.employeeReview ? "Update" : "Submit"}
-                                </Button>
-                            </TableCell>
-                          </>
-                        )}
-                      </StyledTableRow>
-                    ))
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ background: 'linear-gradient(45deg, #0c4672, #00bcd4)' }}>
+                   {viewMode === "hr" ? (
+                    <>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Department</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Team</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Goal</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Task</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Employee</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Due Date</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
+                    </>
                   ) : (
-                    <TableRow>
-                      <TableCell colSpan={viewMode === "hr" ? 9 : 7} align="center">
-                        <Typography variant="body1" sx={{ p: 4 }}>No task reviews found.</Typography>
-                      </TableCell>
-                    </TableRow>
+                    <>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Task</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Due Date</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>HR Description</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Your Review</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Submission Date</TableCell>
+                      <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
+                    </>
                   )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  renderSkeleton()
+                ) : reviews.length > 0 ? (
+                  (rowsPerPage > 0
+                    ? reviews.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    : reviews
+                  ).map((review) => (
+                    <StyledTableRow key={review._id}>
+                      {viewMode === "hr" ? (
+                        <>
+                          <TableCell>{review.departmentId?.departmentName || "N/A"}</TableCell>
+                          <TableCell>{review.teamId?.teamName || "N/A"}</TableCell>
+                          <TableCell>{review.projectId?.projectTitle || "N/A"}</TableCell>
+                          <TableCell>{review.taskId?.taskTitle || "N/A"}</TableCell>
+                          <TableCell>{review.employeeId?.username || "N/A"}</TableCell>
+                          <TableCell>
+                            {review.dueDate
+                              ? new Date(review.dueDate).toLocaleDateString()
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusChip label={review.status} status={review.status} />
+                          </TableCell>
+                          <TableCell>
+                            <Tooltip title={review.description || "N/A"} arrow>
+                              <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                                  {review.description || "N/A"}
+                              </Typography>
+                            </Tooltip>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: "flex", gap: 1, justifyContent: 'center' }}>
+                              <Tooltip title={review.status === "Completed" ? "View Review" : "Edit Review"}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => review.status === "Completed" ? handleViewReview(review) : handleUpdateReview(review)}
+                                  sx={{ 
+                                    color: review.status === "Completed" ? 'info.main' : 'primary.main',
+                                  }}
+                                >
+                                  {review.status === "Completed" ? <VisibilityIcon /> : <EditIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete Review">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleDeleteClick(review)}
+                                  sx={{ 
+                                    color: 'error.main',
+                                  }}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell>{review.taskId?.taskTitle || "N/A"}</TableCell>
+                          <TableCell>
+                            {review.dueDate
+                              ? new Date(review.dueDate).toLocaleDateString()
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusChip label={review.status} status={review.status} />
+                          </TableCell>
+                          <TableCell>
+                              <Tooltip title={review.description || "N/A"} arrow>
+                                  <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+                                      {review.description || "N/A"}
+                                  </Typography>
+                              </Tooltip>
+                          </TableCell>
+                          <TableCell>
+                              {review.employeeReview || "Not submitted"}
+                          </TableCell>
+                          <TableCell>
+                            {review.submissionDate
+                              ? new Date(review.submissionDate).toLocaleDateString()
+                              : "N/A"}
+                          </TableCell>
+                          <TableCell align="center">
+                            <Button
+                                  variant="outlined"
+                                  size="small"
+                                  color={review.status === "Completed" ? "info" : "primary"}
+                                  onClick={() => handleEmployeeAction(review)}
+                                  startIcon={review.status === "Completed" ? <VisibilityIcon /> : <EditIcon />}
+                                  sx={{ 
+                                    borderRadius: '20px',
+                                    textTransform: 'none',
+                                    fontWeight: 'bold',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                  }}
+                              >
+                                  {review.status === "Completed" ? "View" : review.employeeReview ? "Update" : "Submit"}
+                              </Button>
+                          </TableCell>
+                        </>
+                      )}
+                    </StyledTableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={viewMode === "hr" ? 9 : 7} align="center">
+                      <Typography variant="body1" sx={{ p: 4 }}>No task reviews found.</Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 20]}
-              component="div"
-              count={reviews.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              sx={{
-                borderTop: '1px solid rgba(224, 224, 224, 1)',
-                '& .MuiTablePagination-toolbar': {
-                  padding: '16px'
-                }
-              }}
-            />
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 20]}
+            component="div"
+            count={reviews.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            sx={{
+              borderTop: '1px solid rgba(224, 224, 224, 1)',
+              '& .MuiTablePagination-toolbar': {
+                padding: '16px'
+              }
+            }}
+          />
         </Paper>
 
         {/* Create/Update Dialog for HR */}
@@ -855,41 +947,78 @@ const TaskReviewManagement = () => {
                  <Grid item xs={12} sm={6}>
                     <FormControl fullWidth required error={!newReview.departmentId}>
                         <InputLabel>Department</InputLabel>
-                        <Select name="departmentId" value={newReview.departmentId} onChange={handleInputChange} label="Department">
-                        {departments.map((dept) => (<MenuItem key={dept._id} value={dept._id}>{dept.departmentName}</MenuItem>))}
+                        <Select 
+                          name="departmentId" 
+                          value={newReview.departmentId} 
+                          onChange={handleInputChange} 
+                          label="Department"
+                          disabled={isFetchingDependencies}
+                        >
+                        {departments.map((dept) => (
+                          <MenuItem key={dept._id} value={dept._id}>{dept.departmentName}</MenuItem>
+                        ))}
                         </Select>
                     </FormControl>
                  </Grid>
                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required disabled={!newReview.departmentId}>
+                    <FormControl fullWidth required disabled={!newReview.departmentId || isFetchingDependencies}>
                         <InputLabel>Team</InputLabel>
-                        <Select name="teamId" value={newReview.teamId} onChange={handleInputChange} label="Team">
-                        {teams.map((team) => (<MenuItem key={team._id} value={team._id}>{team.teamName}</MenuItem>))}
+                        <Select 
+                          name="teamId" 
+                          value={newReview.teamId} 
+                          onChange={handleInputChange} 
+                          label="Team"
+                        >
+                        {teams.map((team) => (
+                          <MenuItem key={team._id} value={team._id}>{team.teamName}</MenuItem>
+                        ))}
                         </Select>
                     </FormControl>
                  </Grid>
                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required disabled={!newReview.teamId}>
+                    <FormControl fullWidth required disabled={!newReview.teamId || isFetchingDependencies}>
                         <InputLabel>Goal</InputLabel>
-                        <Select name="projectId" value={newReview.projectId} onChange={handleInputChange} label="Goal">
-                        {goals.map((project) => (<MenuItem key={project._id} value={project._id}>{project.projectTitle}</MenuItem>))}
+                        <Select 
+                          name="projectId" 
+                          value={newReview.projectId} 
+                          onChange={handleInputChange} 
+                          label="Goal"
+                        >
+                        {goals.map((project) => (
+                          <MenuItem key={project._id} value={project._id}>{project.projectTitle}</MenuItem>
+                        ))}
                         </Select>
                     </FormControl>
                  </Grid>
                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required disabled={!newReview.projectId}>
+                    <FormControl fullWidth required disabled={!newReview.projectId || isFetchingDependencies}>
                         <InputLabel>Task</InputLabel>
-                        <Select name="taskId" value={newReview.taskId} onChange={handleInputChange} label="Task">
-                            {tasks.length > 0 ? (tasks.map((task) => (<MenuItem key={task._id} value={task._id}>{task.taskTitle}</MenuItem>))) 
+                        <Select 
+                          name="taskId" 
+                          value={newReview.taskId} 
+                          onChange={handleInputChange} 
+                          label="Task"
+                        >
+                            {tasks.length > 0 ? (tasks.map((task) => (
+                              <MenuItem key={task._id} value={task._id}>{task.taskTitle}</MenuItem>
+                            ))) 
                             : (<MenuItem disabled value="">{allTasks.length > 0 ? "No tasks available for review" : "No tasks found"}</MenuItem>)}
                         </Select>
                     </FormControl>
                  </Grid>
                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth required disabled={!newReview.taskId}>
+                    <FormControl fullWidth required disabled={!newReview.taskId || isFetchingDependencies}>
                         <InputLabel>Employee</InputLabel>
-                        <Select name="employeeId" value={newReview.employeeId} onChange={handleInputChange} label="Employee" disabled={true}>
-                        {employees.map((emp) => (<MenuItem key={emp._id} value={emp._id}>{emp.username}</MenuItem>))}
+                        <Select 
+                          name="employeeId" 
+                          value={newReview.employeeId} 
+                          onChange={handleInputChange} 
+                          label="Employee" 
+                          disabled={true}
+                        >
+                        {employees.map((emp) => (
+                          <MenuItem key={emp._id} value={emp._id}>{emp.username}</MenuItem>
+                        ))}
                         </Select>
                     </FormControl>
                  </Grid>
@@ -903,6 +1032,7 @@ const TaskReviewManagement = () => {
                       InputLabelProps={{ shrink: true }} 
                       fullWidth 
                       required
+                      disabled={isFetchingDependencies}
                       InputProps={{
                         inputProps: {
                           min: taskDueDate ? taskDueDate.toISOString().split('T')[0] : undefined
@@ -919,7 +1049,13 @@ const TaskReviewManagement = () => {
                     <Grid item xs={12}>
                         <FormControl fullWidth required>
                             <InputLabel>Status</InputLabel>
-                            <Select name="status" value={newReview.status} onChange={handleInputChange} label="Status">
+                            <Select 
+                              name="status" 
+                              value={newReview.status} 
+                              onChange={handleInputChange} 
+                              label="Status"
+                              disabled={isFetchingDependencies}
+                            >
                                 <MenuItem value="Pending">Pending</MenuItem>
                                 <MenuItem value="In Progress">In Progress</MenuItem>
                                 <MenuItem value="Completed">Completed</MenuItem>
@@ -928,15 +1064,46 @@ const TaskReviewManagement = () => {
                     </Grid>
                   )}
                  <Grid item xs={12}>
-                    <TextField label="Description" name="description" value={newReview.description} onChange={handleInputChange} multiline rows={4} fullWidth required/>
+                    <TextField 
+                      label="Description" 
+                      name="description" 
+                      value={newReview.description} 
+                      onChange={handleInputChange} 
+                      multiline 
+                      rows={4} 
+                      fullWidth 
+                      required
+                      disabled={isFetchingDependencies}
+                    />
                  </Grid>
              </Grid>
           </DialogContent>
            <Divider />
           <DialogActions sx={{ p: 3, gap: 2 }}>
-            <Button onClick={resetForm} startIcon={<CancelIcon />} sx={{borderRadius: 25, px: 3, textTransform: 'none'}} disabled={actionLoading}>Cancel</Button>
-            <Button onClick={handleSaveReview} variant="contained" startIcon={<SaveIcon />} sx={{ background: "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)", borderRadius: 25, px: 3, textTransform: 'none', '&:hover': { background: "linear-gradient(135deg, #45a049 0%, #4CAF50 100%)" }}} disabled={actionLoading || !formValid}>
-                {actionLoading ? <CircularProgress size={24} color="inherit" /> : isUpdate ? "Update" : "Save"}
+            <Button 
+              onClick={resetForm} 
+              startIcon={<CancelIcon />} 
+              sx={{borderRadius: 25, px: 3, textTransform: 'none'}} 
+              disabled={actionLoading || isFetchingDependencies}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveReview} 
+              variant="contained" 
+              startIcon={<SaveIcon />} 
+              sx={{ 
+                background: "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)", 
+                borderRadius: 25, 
+                px: 3, 
+                textTransform: 'none', 
+                '&:hover': { 
+                  background: "linear-gradient(135deg, #45a049 0%, #4CAF50 100%)" 
+                }
+              }} 
+              disabled={actionLoading || !formValid || isFetchingDependencies}
+            >
+              {actionLoading ? <CircularProgress size={24} color="inherit" /> : isUpdate ? "Update" : "Save"}
             </Button>
           </DialogActions>
         </StyledDialog>
