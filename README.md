@@ -36,18 +36,10 @@ Built using **Next.js**, **NextAuth**, and **Tailwind CSS**.
 
 ## 🧬 System Architecture
 
-```mermaid
-flowchart LR
-    subgraph Frontend[Next.js App]
-    A1[Login & Dashboards]
-    A2[Goal / Task / Review Pages]
-    end
+## 🧬 System Architecture
 
-    subgraph Backend[Node.js API]
-    B1[/REST Endpoints/]
-    B2[(MongoDB)]
-    end
+The following diagram illustrates the overall architecture of the **RevX Frontend Application**:
 
-    A1 -->|Axios Calls| B1
-    A2 -->|Fetch Data| B1
-    B1 --> B2
+<p align="center">
+  <img src="./src/assets/Frontend_ArchitextureDigram.png" alt="RevX Frontend Architecture Diagram" width="700"/>
+</p>
