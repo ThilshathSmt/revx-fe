@@ -1,4 +1,5 @@
 
+
 ---
 
 ## 🌐 **2️⃣ Frontend – `revx-fe` (Next.js + Tailwind + NextAuth)**
@@ -34,7 +35,8 @@ Built using **Next.js**, **NextAuth**, and **Tailwind CSS**.
 
 ---
 
-## 🧬 System Architecture
+
+
 
 ## 🧬 System Architecture
 
