@@ -30,14 +30,15 @@ This backend handles:
 
 
 ---
-
 ## 🧬 System Architecture
 
 The following diagram illustrates the overall architecture of the **RevX Backend System**:
 
 <p align="center">
-  <img src="./assets/images/architecture.jpeg" alt="RevX Architecture Diagram" width="700"/>
+  <img src="./assets\Frontend_ArchitextureDigram.png" alt="RevX Architecture Diagram" width="700"/>
 </p>
+
+
 
 
 
