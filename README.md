@@ -42,18 +42,15 @@ The following diagram illustrates the overall architecture of the **RevX Backend
 
 
 
-=======================================================================
-| Feature         | Endpoint             | Method     | Description               |
-| --------------- | -------------------- | ---------- | ------------------------- |
-| Authentication  | `/api/auth/login`    | POST       | User login (JWT)          |
-| User Management | `/api/users`         | POST / GET | Create & fetch users      |
-| Departments     | `/api/departments`   | CRUD       | Manage departments        |
-| Teams           | `/api/teams`         | CRUD       | Manage teams and members  |
-| Goals           | `/api/goals`         | CRUD       | Set and track goals       |
-| Tasks           | `/api/tasks`         | CRUD       | Assign and manage tasks   |
-| Reviews         | `/api/reviews`       | POST / PUT | Create goal/task review   |
-| Notifications   | `/api/notifications` | GET        | Send alerts and reminders |
-| Reports         | `/api/reports`       | GET        | Analytics and summaries   |
+| Module          | Description                                    |
+| --------------- | ---------------------------------------------- |
+| Authentication  | Secure login using NextAuth                    |
+| Dashboard       | Role-based views for HR, Manager, and Employee |
+| Goal Management | Create, update, and track progress             |
+| Task Tracking   | Assign, monitor, and review tasks              |
+| Reviews         | Conduct goal & task review cycles              |
+| Analytics       | Graphical performance insights using Chart.js  |
+
 
 ==========================================================================
 
@@ -61,29 +58,6 @@ The following diagram illustrates the overall architecture of the **RevX Backend
 
 ## Backend Setup
 
-```bash
-# Clone and setup
-git clone https://github.com/ThilshathSmt/revx-be.git
-cd revx-be
-npm install
-
-# Configure .env
-touch .env
-```
-
-Add to `.env`:
-```env
-MONGO_URI=mongodb://localhost:27017/revx_be_1
-JWT_SECRET=your-secret
-PORT=5001
-```
-
-```bash
-# Start server
-npm run dev
-```
-
----
 
 ## Frontend Setup
 
@@ -132,13 +106,14 @@ curl http://localhost:5001/api/health
 ```
 ==========================================================================
 
-| Member           | Role                 | Contribution                                      |
-| ---------------- | -------------------- | ------------------------------------------------- |
-| **Thilshath SM** | Full Stack Developer | Review Scheduling, Notifications, API Integration |
-| **Faskath MHM**  | Full Stack Developer | Authentication & Role Management (JWT / RBAC)     |
-| **Muadh MRM**    | Full Stack Developer | Goal & Task APIs, CRUD Operations                 |
-| **Fadhil MFM**   | Full Stack Developer | Feedback & Self-assessment APIs                   |
-| **Haneef MNAR**  | Full Stack Developer | Reporting & Analytics APIs                        |
+| Member           | Role                 | Feature Focus                       |
+| ---------------- | -------------------- | ----------------------------------- |
+| **Thilshath SM** | Full Stack Developer | Review Scheduling & Notification UI |
+| **Faskath MHM**  | Full Stack Developer | Auth & Role-Based UI (NextAuth)     |
+| **Muadh MRM**    | Full Stack Developer | Goal Setting & Progress Tracking    |
+| **Fadhil MFM**   | Full Stack Developer | Feedback & Self-Assessment UI       |
+| **Haneef MNAR**  | Full Stack Developer | Analytics Dashboard & Reports       |
+
 
 =========================================================================
 
@@ -150,16 +125,37 @@ curl http://localhost:5001/api/health
 
 =============================================================================
 
-<p align="center">
-  <img src="./assets\images\Backend_folderStructure.png" alt="RevX Backend Project folder Structure" width="700"/>
-</p>
+## 📋 Folder Structure
 
-==========================================================================
 
-📊 Deployment
+revx-fe/
+│
+├── 📁 public/              # Static assets
+│   └── 🖼️ Images, fonts, and public files
+│
+├── 📁 src/
+│   ├── 📁 pages/           # Routes and Next.js pages
+│   │   └── 🔗 Application routing
+│   │
+│   ├── 📁 components/      # Reusable UI elements
+│   │   └── 🧩 React components
+│   │
+│   ├── 📁 styles/          # Tailwind styles
+│   │   └── 🎨 CSS and styling files
+│   │
+│   ├── 📁 hooks/           # Custom React hooks
+│   │   └── 🪝 Reusable logic hooks
+│   │
+│   └── 📁 utils/           # Helper functions
+│       └── 🛠️ Utility functions
+│
+├── ⚙️ next.config.js       # Next.js configuration
+├── 🎨 tailwind.config.js   # Tailwind CSS configuration
+└── 📦 package.json         # Dependencies and scripts
 
-Can be hosted on Render / EC2 / Vercel
+=============================================================================
 
-Update .env with production MongoDB URI
+## 📊 Deployment
+- Easily deployable on Vercel or Netlify
+- Ensure environment variables are configured before deployment
 
-Configure email credentials for Nodemailer
