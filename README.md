@@ -97,7 +97,7 @@ npm run dev
 
 ## ✅ Verify Installation
 
-```bash
+```
 # Check backend
 curl http://localhost:5001/api/health
 
@@ -127,7 +127,7 @@ curl http://localhost:5001/api/health
 
 ## 📋 Folder Structure
 
-
+```
 revx-fe/
 │
 ├── 📁 public/              # Static assets
@@ -152,10 +152,11 @@ revx-fe/
 ├── ⚙️ next.config.js       # Next.js configuration
 ├── 🎨 tailwind.config.js   # Tailwind CSS configuration
 └── 📦 package.json         # Dependencies and scripts
-
+```
+```
 =============================================================================
 
 ## 📊 Deployment
 - Easily deployable on Vercel or Netlify
 - Ensure environment variables are configured before deployment
-
+```
